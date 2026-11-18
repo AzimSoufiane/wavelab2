@@ -1,0 +1,6 @@
+{
+  "name": "WaveLab 3D — Mod-M115",
+  "description": "Simulateur 3D interactif de propagation électromagnétique (ENSA Tanger Mod-M115) : dioptres, incidence oblique TE/TM, milieux à pertes, guides d'ondes et ondes stationnaires TOS/ROS.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
