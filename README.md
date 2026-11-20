@@ -81,6 +81,7 @@ bun run clean     # suppression de dist/ et server.js
 
 ```text
 .
+├── LICENSE                  # licence MIT
 ├── index.html               # point d'entrée HTML (lang="fr", thème sombre)
 ├── metadata.json            # métadonnées de l'applet et capacités AI Studio
 ├── vite.config.ts           # plugins React/Tailwind, alias "@", copie des assets
@@ -123,4 +124,4 @@ Projet pédagogique associé au module **Mod-M115 — Propagation et guides d'on
 
 ## Licence
 
-Aucune licence n'est actuellement définie dans le dépôt.
+Ce projet est distribué sous licence [MIT](LICENSE). Voir le fichier [`LICENSE`](LICENSE) pour les détails.
