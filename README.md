@@ -86,6 +86,9 @@ bun run clean     # suppression de dist/ et server.js
 ├── metadata.json            # métadonnées de l'applet et capacités AI Studio
 ├── vite.config.ts           # plugins React/Tailwind, alias "@", copie des assets
 ├── .env.example             # modèle de configuration
+├── public
+│   └── assets               # fichiers statiques servis à la racine (/assets/...)
+│       └── aistudio
 └── src
     ├── main.tsx             # montage de l'application
     ├── App.tsx              # état global, chapitres et agencement des couches
@@ -121,6 +124,22 @@ npx tsx --test src/physics/waveEngine.test.ts src/utils/pdfReport.test.ts
 ## Contexte académique
 
 Projet pédagogique associé au module **Mod-M115 — Propagation et guides d'ondes** (ENSA Tanger). Les préréglages et les tests reprennent les exercices et les notations du cours (`Γ`, `η`, `δ`, `fc`, `R + T' = 1`, …).
+
+## Résumé du cours (PDF)
+
+Pour joindre le résumé de cours que vous avez préparé :
+
+1. Déposez le fichier dans `public/assets/`, par exemple `public/assets/resume-mod-m115.pdf`.
+2. Vite le sert alors à l'URL `/assets/resume-mod-m115.pdf` et le copie automatiquement dans `dist/` lors du build.
+3. Pour le rendre accessible depuis l'interface, ajoutez un lien dans `src/components/HeaderBar.tsx` :
+
+```tsx
+<a href="/assets/resume-mod-m115.pdf" target="_blank" rel="noopener noreferrer">
+  Résumé du cours
+</a>
+```
+
+Le PDF peut aussi être référencé depuis le README avec un lien relatif : `[Résumé du cours](public/assets/resume-mod-m115.pdf)`.
 
 ## Licence
 
