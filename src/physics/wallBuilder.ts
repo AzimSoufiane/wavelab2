@@ -9,6 +9,7 @@ interface CachedTextureSet {
 }
 
 const textureCache = new Map<string, CachedTextureSet>();
+const materialCache = new Map<string, THREE.Material>();
 
 function seededNoise(x: number, y: number, seed: number): number {
   const n = Math.sin(x * 12.9898 + y * 78.233 + seed * 37.719) * 43758.5453;
@@ -24,7 +25,7 @@ function getMaterialTextures(
   const existing = textureCache.get(key);
   if (existing) return existing;
 
-  const size = 256;
+  const size = 128;
   const albedoCanvas = document.createElement('canvas');
   albedoCanvas.width = size;
   albedoCanvas.height = size;
@@ -143,10 +144,15 @@ function createWallPBRMaterial(
   maxAnisotropy: number,
   isSoftwareGl: boolean
 ): THREE.Material {
+  const matKey = `${material.id}_${material.color}_${material.isConductor ? 1 : 0}_${isSoftwareGl ? 1 : 0}`;
+  const cached = materialCache.get(matKey);
+  if (cached) return cached;
+
   const maps = getMaterialTextures(material.id, material.color, maxAnisotropy);
+  let pbrMat: THREE.Material;
 
   if (material.id === 'air') {
-    return new THREE.MeshPhysicalMaterial({
+    pbrMat = new THREE.MeshPhysicalMaterial({
       color: new THREE.Color('#7dd3fc'),
       roughness: 0.08,
       metalness: 0.05,
@@ -158,11 +164,9 @@ function createWallPBRMaterial(
       clearcoatRoughness: 0.05,
       depthWrite: false,
     });
-  }
-
-  if (material.isConductor || material.id === 'metal') {
+  } else if (material.isConductor || material.id === 'metal') {
     const isCopper = material.id === 'copper';
-    return new THREE.MeshPhysicalMaterial({
+    pbrMat = new THREE.MeshPhysicalMaterial({
       color: isCopper ? new THREE.Color('#f59e60') : 0xffffff,
       map: maps.map,
       bumpMap: maps.bumpMap,
@@ -178,10 +182,8 @@ function createWallPBRMaterial(
       clearcoatRoughness: 0.25,
       envMapIntensity: isCopper ? 0.85 : 1.25,
     });
-  }
-
-  if (material.id === 'polystyrene') {
-    return new THREE.MeshPhysicalMaterial({
+  } else if (material.id === 'polystyrene') {
+    pbrMat = new THREE.MeshPhysicalMaterial({
       color: 0xffffff,
       map: maps.map,
       bumpMap: maps.bumpMap,
@@ -193,18 +195,34 @@ function createWallPBRMaterial(
       clearcoatRoughness: 0.45,
       envMapIntensity: 0.9,
     });
+  } else {
+    pbrMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      map: maps.map,
+      bumpMap: maps.bumpMap,
+      bumpScale: 0.04,
+      roughnessMap: maps.roughnessMap,
+      roughness: material.id === 'concrete' ? 0.88 : 0.8,
+      metalness: 0.04,
+      envMapIntensity: 0.75,
+    });
   }
 
-  return new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    map: maps.map,
-    bumpMap: maps.bumpMap,
-    bumpScale: 0.04,
-    roughnessMap: maps.roughnessMap,
-    roughness: material.id === 'concrete' ? 0.88 : 0.8,
-    metalness: 0.04,
-    envMapIntensity: 0.75,
-  });
+  pbrMat.userData.shared = true;
+  materialCache.set(matKey, pbrMat);
+  return pbrMat;
+}
+
+function getSharedFrameMaterial(
+  key: string,
+  factory: () => THREE.Material
+): THREE.Material {
+  const existing = materialCache.get(key);
+  if (existing) return existing;
+  const created = factory();
+  created.userData.shared = true;
+  materialCache.set(key, created);
+  return created;
 }
 
 function createExtrudedProfileMesh(
@@ -238,14 +256,11 @@ function createExtrudedProfileMesh(
   }
   shape.closePath();
 
-  const bevelSize = Math.min(0.035, Math.abs(zEnd - zStart) * 0.06, wall.thickness * 0.08);
+  const depthY = Math.max(0.4, wallHeight - 0.16);
   const extrudeGeo = new THREE.ExtrudeGeometry(shape, {
-    depth: Math.max(0.4, wallHeight - 0.16),
-    bevelEnabled: true,
-    bevelThickness: 0.04,
-    bevelSize,
-    bevelSegments: 2,
-    curveSegments: 16,
+    depth: depthY,
+    bevelEnabled: false,
+    curveSegments: 6,
   });
 
   // Transform (z_2d, x_2d, y_extrude) -> (x, y, z)
@@ -264,6 +279,26 @@ function createExtrudedProfileMesh(
   }
 
   const mesh = new THREE.Mesh(extrudeGeo, mat);
+  mesh.castShadow = castShadow;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+function createFlatBlockMesh(
+  zStart: number,
+  zEnd: number,
+  xFront: number,
+  xBack: number,
+  mat: THREE.Material,
+  wallHeight: number,
+  castShadow: boolean
+): THREE.Mesh {
+  const widthX = Math.max(0.08, xBack - xFront);
+  const depthY = Math.max(0.4, wallHeight - 0.16);
+  const lengthZ = Math.max(0.08, zEnd - zStart);
+  const boxGeo = new THREE.BoxGeometry(widthX, depthY, lengthZ);
+  const mesh = new THREE.Mesh(boxGeo, mat);
+  mesh.position.set((xFront + xBack) * 0.5, 0.08 + depthY * 0.5, (zStart + zEnd) * 0.5);
   mesh.castShadow = castShadow;
   mesh.receiveShadow = true;
   return mesh;
@@ -292,25 +327,34 @@ export function buildBarrierAssembly(
   const centerX = wall.posX - wall.textureDepth * 0.5;
   const castShadow = !isSoftwareGl && material.id !== 'air';
 
-  const frameAnodizedMat = new THREE.MeshStandardMaterial({
-    color: 0x161f30,
-    roughness: 0.42,
-    metalness: 0.78,
-    envMapIntensity: 1.0,
-  });
-  const brushedTrimMat = new THREE.MeshStandardMaterial({
-    color: 0x94a3b8,
-    roughness: 0.24,
-    metalness: 0.88,
-    envMapIntensity: 1.2,
-  });
-  const accentStripMat = new THREE.MeshStandardMaterial({
-    color: material.isConductor || material.id === 'metal' ? 0xf43f5e : 0x38bdf8,
-    roughness: 0.3,
-    metalness: 0.4,
-    emissive: material.isConductor || material.id === 'metal' ? 0x4c0519 : 0x082f49,
-    emissiveIntensity: 0.45,
-  });
+  const frameAnodizedMat = getSharedFrameMaterial('frame_anodized', () =>
+    new THREE.MeshStandardMaterial({
+      color: 0x161f30,
+      roughness: 0.42,
+      metalness: 0.78,
+      envMapIntensity: 1.0,
+    })
+  );
+  const brushedTrimMat = getSharedFrameMaterial('brushed_trim', () =>
+    new THREE.MeshStandardMaterial({
+      color: 0x94a3b8,
+      roughness: 0.24,
+      metalness: 0.88,
+      envMapIntensity: 1.2,
+    })
+  );
+  const isMetalAccent = Boolean(material.isConductor || material.id === 'metal');
+  const accentStripMat = getSharedFrameMaterial(
+    isMetalAccent ? 'accent_conductor' : 'accent_dielectric',
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: isMetalAccent ? 0xf43f5e : 0x38bdf8,
+        roughness: 0.3,
+        metalness: 0.4,
+        emissive: isMetalAccent ? 0x4c0519 : 0x082f49,
+        emissiveIntensity: 0.45,
+      })
+  );
 
   // 1. Rail d'alignement optique avant (indique le plan d'entrée)
   const frontRailGeo = new THREE.BoxGeometry(0.08, 0.04, wallSpanZ + 0.6);
@@ -350,12 +394,12 @@ export function buildBarrierAssembly(
         pad.receiveShadow = true;
         group.add(pad);
 
-        const blockMesh = createExtrudedProfileMesh(
+        const blockMesh = createFlatBlockMesh(
           segStart,
           segEnd,
-          wall,
+          wall.posX - wall.thickness / 2 - wall.textureDepth,
+          wall.posX + wall.thickness / 2,
           barrierMat,
-          4,
           wallHeight,
           castShadow
         );
@@ -379,27 +423,38 @@ export function buildBarrierAssembly(
 
     const shadowPlaneGeo = new THREE.PlaneGeometry(totalDepth + 1.2, wallSpanZ + 1.0);
     shadowPlaneGeo.rotateX(-Math.PI / 2);
-    const shadowPlaneMat = new THREE.MeshBasicMaterial({
-      color: 0x020617,
-      transparent: true,
-      opacity: 0.38,
-      depthWrite: false,
-    });
+    const shadowPlaneMat = getSharedFrameMaterial('contact_shadow', () =>
+      new THREE.MeshBasicMaterial({
+        color: 0x020617,
+        transparent: true,
+        opacity: 0.38,
+        depthWrite: false,
+      })
+    );
     const contactShadow = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
     contactShadow.position.set(centerX, -0.012, 0);
     group.add(contactShadow);
 
-    const zSteps =
-      wall.textureProfile === 'creneaux' || wall.textureProfile === 'rectangulaire' ? 220 : 180;
-    const bodyMesh = createExtrudedProfileMesh(
-      -wallSpanZ / 2,
-      wallSpanZ / 2,
-      wall,
-      barrierMat,
-      zSteps,
-      wallHeight,
-      castShadow
-    );
+    const bodyMesh =
+      wall.textureDepth <= 0.01
+        ? createFlatBlockMesh(
+            -wallSpanZ / 2,
+            wallSpanZ / 2,
+            wall.posX - wall.thickness / 2,
+            wall.posX + wall.thickness / 2,
+            barrierMat,
+            wallHeight,
+            castShadow
+          )
+        : createExtrudedProfileMesh(
+            -wallSpanZ / 2,
+            wallSpanZ / 2,
+            wall,
+            barrierMat,
+            wall.textureProfile === 'creneaux' || wall.textureProfile === 'rectangulaire' ? 84 : 72,
+            wallHeight,
+            castShadow
+          );
     group.add(bodyMesh);
   }
 
@@ -430,13 +485,15 @@ export function buildBarrierAssembly(
   // 5. Plaques latérales du guide d'onde rectangulaire si régime guide d'ondes actif
   if (wave.boundaryModel === 'guide_ondes') {
     const guideWallGeo = new THREE.BoxGeometry(30, wallHeight * 0.72, 0.14);
-    const guideWallMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      roughness: 0.32,
-      metalness: 0.85,
-      transparent: true,
-      opacity: 0.35,
-    });
+    const guideWallMat = getSharedFrameMaterial('guide_side_plate', () =>
+      new THREE.MeshStandardMaterial({
+        color: 0x334155,
+        roughness: 0.32,
+        metalness: 0.85,
+        transparent: true,
+        opacity: 0.35,
+      })
+    );
     for (const zSide of [-12.05, 12.05]) {
       const sidePlate = new THREE.Mesh(guideWallGeo, guideWallMat);
       sidePlate.position.set(0, (wallHeight * 0.72) / 2, zSide);
@@ -459,7 +516,7 @@ export function disposeGroupResources(group: THREE.Group): void {
       }
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
       for (const m of mats) {
-        if (m && !disposedMats.has(m)) {
+        if (m && !m.userData?.shared && !disposedMats.has(m)) {
           m.dispose();
           disposedMats.add(m);
         }

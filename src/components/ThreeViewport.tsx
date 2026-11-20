@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
@@ -11,7 +11,8 @@ import {
   CameraMode,
 } from '../types';
 import {
-  calculateWaveField,
+  evaluateSurfaceField,
+  SurfaceFieldScratch,
   calculateElectromagneticParameters,
   calculateStandingWaveEnvelope,
 } from '../physics/waveEngine';
@@ -31,41 +32,29 @@ interface ThreeViewportProps {
 
 const CAMERA_PRESETS: Record<
   CameraMode,
-  { pos: [number, number, number]; look: [number, number, number]; shortLabel: string; label: string }
+  { pos: [number, number, number]; look: [number, number, number] }
 > = {
   perspective: {
-    pos: [-7.5, 20, 26],
-    look: [0, 0.3, 0],
-    shortLabel: 'Vue 3D',
-    label: 'Vue 3D oblique',
+    pos: [-7.5, 20.5, 29],
+    look: [0, -2.8, 0],
   },
   top: {
     pos: [0, 34, 0.01],
     look: [0, 0, 0],
-    shortLabel: 'Dessus',
-    label: 'Vue du dessus (zénith)',
   },
   profile: {
     pos: [0, 5.2, 27],
-    look: [0, 0.8, 0],
-    shortLabel: 'Profil',
-    label: 'Vue de profil latéral',
+    look: [0, 0.6, 0],
   },
   incident: {
     pos: [-22, 10.5, 10],
-    look: [0, 0.8, 0],
-    shortLabel: 'Face',
-    label: 'Vue depuis l’onde incidente',
+    look: [0, 0.6, 0],
   },
   isometric: {
     pos: [16, 17, -21],
-    look: [0, 0.4, 0],
-    shortLabel: 'Arrière',
-    label: 'Vue arrière 3/4 (Milieu 2)',
+    look: [0, 0.2, 0],
   },
 };
-
-const CAMERA_ORDER: CameraMode[] = ['perspective', 'top', 'profile', 'incident', 'isometric'];
 
 const detectSoftwareWebGL = (): boolean => {
   try {
@@ -86,6 +75,15 @@ const _arrowDummy = new THREE.Object3D();
 const _rayMouse = new THREE.Vector2();
 const _groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const _planeIntersect = new THREE.Vector3();
+const _triDirVec = new THREE.Vector3();
+const _fieldScratch: SurfaceFieldScratch = {
+  amplitude: 0,
+  amplitudeZ: 0,
+  fluxX: 0,
+  fluxZ: 0,
+  inObstacle: false,
+  isEvanescent: false,
+};
 
 export const ThreeViewport: React.FC<ThreeViewportProps> = ({
   wave,
@@ -95,8 +93,6 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
   onProbeMove,
   simulation,
   onTimeUpdate,
-  onWaveChange,
-  onCameraModeChange,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -127,6 +123,11 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
   const isSoftwareGlRef = useRef<boolean>(false);
   const [contextLost, setContextLost] = useState(false);
 
+  const emParams = useMemo(
+    () => calculateElectromagneticParameters(wave, material, wall),
+    [wave, material, wall]
+  );
+
   // Sync latest React props into mutable refs
   const waveRef = useRef(wave);
   waveRef.current = wave;
@@ -134,6 +135,8 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
   wallRef.current = wall;
   const materialRef = useRef(material);
   materialRef.current = material;
+  const emParamsRef = useRef(emParams);
+  emParamsRef.current = emParams;
   const simRef = useRef(simulation);
   simRef.current = simulation;
   const probeStateRef = useRef(probe);
@@ -160,23 +163,31 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     isSoftwareGlRef.current = isSoftwareGl;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x080c15);
-    scene.fog = new THREE.FogExp2(0x080c15, 0.011);
+    scene.background = null;
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(44, width / height, 0.1, 1000);
-    camera.position.set(-7.5, 20, 26);
+    const initAspect = width / height;
+    const camera = new THREE.PerspectiveCamera(
+      initAspect < 1 ? Math.min(72, 44 / Math.max(0.62, initAspect)) : 44,
+      initAspect,
+      0.1,
+      1000
+    );
+    camera.position.set(-7.5, 20.5, 29);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({
+      alpha: true,
       antialias: !isSoftwareGl,
+      preserveDrawingBuffer: isSoftwareGl,
       powerPreference: 'high-performance',
     });
+    renderer.setClearColor(0x000000, 0);
     renderer.setSize(width, height);
     renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.12;
     renderer.shadowMap.enabled = !isSoftwareGl;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
@@ -193,17 +204,17 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     controls.maxPolarAngle = Math.PI / 2 - 0.05;
     controls.minDistance = 7;
     controls.maxDistance = 68;
-    controls.target.set(0, 0, 0);
+    controls.target.set(0, -2.8, 0);
     controls.addEventListener('start', () => {
       camTransitionActiveRef.current = false;
     });
     controlsRef.current = controls;
 
     // 3-point warm/cool studio lighting
-    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x0f172a, 0.75);
+    const hemiLight = new THREE.HemisphereLight(0x93c5fd, 0x0f172a, 0.8);
     scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.55);
     keyLight.position.set(12, 26, 16);
     keyLight.castShadow = !isSoftwareGl;
     keyLight.shadow.mapSize.width = 1024;
@@ -216,17 +227,19 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     keyLight.shadow.normalBias = 0.02;
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.7);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 0.75);
     rimLight.position.set(-16, 12, -14);
     scene.add(rimLight);
 
-    // Calibrated optical bench deck (grounded matte slate surface + subtle metric grid)
-    const benchGeo = new THREE.PlaneGeometry(46, 36);
+    // Translucent optical bench deck so the deep scene gradient glows through around the wave
+    const benchGeo = new THREE.PlaneGeometry(42, 32);
     benchGeo.rotateX(-Math.PI / 2);
     const benchMat = new THREE.MeshStandardMaterial({
-      color: 0x0b1120,
-      roughness: 0.84,
-      metalness: 0.18,
+      color: 0x071226,
+      roughness: 0.78,
+      metalness: 0.25,
+      transparent: true,
+      opacity: 0.56,
     });
     const benchMesh = new THREE.Mesh(benchGeo, benchMat);
     benchMesh.position.y = -0.05;
@@ -243,14 +256,18 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     }
     scene.add(grid);
 
-    // Wave heightfield surface
-    const segX = isSoftwareGl ? 96 : 136;
-    const segZ = isSoftwareGl ? 56 : 84;
+    // Wave heightfield surface (smooth analytical grid normals)
+    const segX = isSoftwareGl ? 96 : 120;
+    const segZ = isSoftwareGl ? 56 : 72;
     const planeGeo = new THREE.PlaneGeometry(32, 22, segX, segZ);
     planeGeo.rotateX(-Math.PI / 2);
     const vertCount = planeGeo.attributes.position.count;
     const colors = new Float32Array(vertCount * 3);
     planeGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const gridCols = segX + 1;
+    const gridRows = segZ + 1;
+    const invTwoDx = segX / 64; // 1 / (2 * (32 / segX))
+    const invTwoDz = segZ / 44; // 1 / (2 * (22 / segZ))
 
     const waveMat = new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -392,9 +409,12 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = Math.max(1, containerRef.current.clientWidth);
       const h = Math.max(1, containerRef.current.clientHeight);
-      cameraRef.current.aspect = w / h;
+      const aspect = w / h;
+      cameraRef.current.aspect = aspect;
+      cameraRef.current.fov = aspect < 1 ? Math.min(72, 44 / Math.max(0.62, aspect)) : 44;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(w, h);
+      renderNowRef.current?.();
     };
     window.addEventListener('resize', handleResize);
 
@@ -511,38 +531,50 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     };
 
     const updateDynamicMeshes = (tNow: number, syncUi: boolean) => {
-      // Update wave surface vertices & colors
+      const curWave = waveRef.current;
+      const curWall = wallRef.current;
+      const curMat = materialRef.current;
+      const curParams = emParamsRef.current;
+
+      // Update wave surface vertices, colors, and analytical grid normals (zero allocation)
       if (waveMeshRef.current) {
         waveMeshRef.current.visible = simRef.current.showSurface;
         if (simRef.current.showSurface) {
           const geo = waveMeshRef.current.geometry;
           const posAttr = geo.attributes.position as THREE.BufferAttribute;
           const colAttr = geo.attributes.color as THREE.BufferAttribute;
-          const curWave = waveRef.current;
-          const curWall = wallRef.current;
-          const curMat = materialRef.current;
+          const normAttr = geo.attributes.normal as THREE.BufferAttribute;
+          const posArr = posAttr.array as Float32Array;
+          const colArr = colAttr.array as Float32Array;
+          const normArr = normAttr.array as Float32Array;
           const invAmp = 1 / Math.max(0.2, curWave.amplitude);
+          const isAirMat = curMat.id === 'air';
 
           for (let i = 0; i < posAttr.count; i++) {
-            const vx = posAttr.getX(i);
-            const vz = posAttr.getZ(i);
-            const field = calculateWaveField(vx, vz, tNow, curWave, curWall, curMat);
-            const yVal = field.amplitude * 1.25;
-            posAttr.setY(i, yVal);
+            const o = i * 3;
+            const vx = posArr[o];
+            const vz = posArr[o + 2];
+            evaluateSurfaceField(vx, vz, tNow, curWave, curWall, curMat, curParams, _fieldScratch);
+            const yVal = _fieldScratch.amplitude * 1.25;
+            posArr[o + 1] = yVal;
 
-            const norm = Math.max(-1, Math.min(1, field.amplitude * invAmp));
+            let norm = _fieldScratch.amplitude * invAmp;
+            if (norm > 1) norm = 1;
+            else if (norm < -1) norm = -1;
+
             let r = 0.08;
             let g = 0.14;
             let b = 0.24;
-            if (field.inObstacle && curMat.id !== 'air') {
-              if (field.isEvanescent) {
-                r = 0.45 + Math.abs(norm) * 0.45;
-                g = 0.1 + Math.abs(norm) * 0.15;
+            if (_fieldScratch.inObstacle && !isAirMat) {
+              const absN = norm < 0 ? -norm : norm;
+              if (_fieldScratch.isEvanescent) {
+                r = 0.45 + absN * 0.45;
+                g = 0.1 + absN * 0.15;
                 b = 0.22;
               } else {
-                r = 0.06 + Math.max(0, norm) * 0.85;
-                g = 0.42 + Math.abs(norm) * 0.45;
-                b = 0.46 + Math.max(0, -norm) * 0.4;
+                r = 0.06 + (norm > 0 ? norm * 0.85 : 0);
+                g = 0.42 + absN * 0.45;
+                b = 0.46 + (norm < 0 ? -norm * 0.4 : 0);
               }
             } else if (norm >= 0) {
               r = 0.1 + norm * 0.12;
@@ -554,11 +586,43 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
               g = 0.12 + neg * 0.28;
               b = 0.32 - neg * 0.15;
             }
-            colAttr.setXYZ(i, r, g, b);
+            colArr[o] = r;
+            colArr[o + 1] = g;
+            colArr[o + 2] = b;
           }
+
+          // Fast heightfield central-difference normals (replaces expensive triangle pass)
+          for (let iz = 0; iz < gridRows; iz++) {
+            const rowBase = iz * gridCols;
+            const izUp = iz > 0 ? iz - 1 : 0;
+            const izDn = iz < gridRows - 1 ? iz + 1 : gridRows - 1;
+            const dzScale = iz > 0 && iz < gridRows - 1 ? invTwoDz : invTwoDz * 2;
+            const upBase = izUp * gridCols;
+            const dnBase = izDn * gridCols;
+
+            for (let ix = 0; ix < gridCols; ix++) {
+              const ixL = ix > 0 ? ix - 1 : 0;
+              const ixR = ix < gridCols - 1 ? ix + 1 : gridCols - 1;
+              const dxScale = ix > 0 && ix < gridCols - 1 ? invTwoDx : invTwoDx * 2;
+
+              const yL = posArr[(rowBase + ixL) * 3 + 1];
+              const yR = posArr[(rowBase + ixR) * 3 + 1];
+              const yU = posArr[(upBase + ix) * 3 + 1];
+              const yD = posArr[(dnBase + ix) * 3 + 1];
+
+              const nx = -(yR - yL) * dxScale;
+              const nz = -(yD - yU) * dzScale;
+              const invLen = 1 / Math.sqrt(nx * nx + 1 + nz * nz);
+              const o = (rowBase + ix) * 3;
+              normArr[o] = nx * invLen;
+              normArr[o + 1] = invLen;
+              normArr[o + 2] = nz * invLen;
+            }
+          }
+
           posAttr.needsUpdate = true;
           colAttr.needsUpdate = true;
-          geo.computeVertexNormals();
+          normAttr.needsUpdate = true;
         }
       }
 
@@ -570,25 +634,18 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
           const xStep = 28 / (arrowCols - 1);
           const zStep = 18 / (arrowRows - 1);
           for (let r = 0; r < arrowRows; r++) {
+            const z = -9 + r * zStep;
             for (let c = 0; c < arrowCols; c++) {
               const x = -14 + c * xStep;
-              const z = -9 + r * zStep;
-              const field = calculateWaveField(
-                x,
-                z,
-                tNow,
-                waveRef.current,
-                wallRef.current,
-                materialRef.current
-              );
-              const fluxLen = Math.hypot(field.fluxX, field.fluxZ);
+              evaluateSurfaceField(x, z, tNow, curWave, curWall, curMat, curParams, _fieldScratch);
+              const fluxLen = Math.hypot(_fieldScratch.fluxX, _fieldScratch.fluxZ);
               if (fluxLen < 0.05) {
                 _arrowDummy.scale.set(0, 0, 0);
               } else {
-                _arrowDummy.position.set(x, Math.max(0.18, field.amplitude * 1.25 + 0.35), z);
-                const angle = Math.atan2(field.fluxX, field.fluxZ);
+                _arrowDummy.position.set(x, Math.max(0.18, _fieldScratch.amplitude * 1.25 + 0.35), z);
+                const angle = Math.atan2(_fieldScratch.fluxX, _fieldScratch.fluxZ);
                 _arrowDummy.rotation.set(0, angle, 0);
-                const s = Math.min(1.25, Math.max(0.25, Math.abs(field.amplitude) * 0.75 + 0.2));
+                const s = Math.min(1.25, Math.max(0.25, Math.abs(_fieldScratch.amplitude) * 0.75 + 0.2));
                 _arrowDummy.scale.set(s, s, s);
               }
               _arrowDummy.updateMatrix();
@@ -601,26 +658,14 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
 
       // Update probes
       const prb = probeStateRef.current;
-      const f1 = calculateWaveField(
-        prb.x1,
-        prb.z1,
-        tNow,
-        waveRef.current,
-        wallRef.current,
-        materialRef.current
-      );
-      const f2 = calculateWaveField(
-        prb.x2,
-        prb.z2,
-        tNow,
-        waveRef.current,
-        wallRef.current,
-        materialRef.current
-      );
+      evaluateSurfaceField(prb.x1, prb.z1, tNow, curWave, curWall, curMat, curParams, _fieldScratch);
+      const amp1 = _fieldScratch.amplitude;
+      evaluateSurfaceField(prb.x2, prb.z2, tNow, curWave, curWall, curMat, curParams, _fieldScratch);
+      const amp2 = _fieldScratch.amplitude;
 
       if (probe1GroupRef.current && probe1SphereRef.current && probe1StemRef.current) {
         probe1GroupRef.current.position.set(prb.x1, 0, prb.z1);
-        const y1 = Math.max(0.25, 0.9 + f1.amplitude * 1.25);
+        const y1 = Math.max(0.25, 0.9 + amp1 * 1.25);
         probe1SphereRef.current.position.y = y1;
         probe1StemRef.current.position.y = y1 / 2;
         probe1StemRef.current.scale.set(1, y1, 1);
@@ -628,7 +673,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
 
       if (probe2GroupRef.current && probe2SphereRef.current && probe2StemRef.current) {
         probe2GroupRef.current.position.set(prb.x2, 0, prb.z2);
-        const y2 = Math.max(0.25, 0.9 + f2.amplitude * 1.25);
+        const y2 = Math.max(0.25, 0.9 + amp2 * 1.25);
         probe2SphereRef.current.position.y = y2;
         probe2StemRef.current.position.y = y2 / 2;
         probe2StemRef.current.scale.set(1, y2, 1);
@@ -639,32 +684,33 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
         const showTri = simRef.current.showTrihedron;
         trihedronGroupRef.current.visible = showTri;
         if (showTri) {
-          const triY = Math.max(0.5, 1.3 + f1.amplitude * 1.1);
+          const triY = Math.max(0.5, 1.3 + amp1 * 1.1);
           trihedronGroupRef.current.position.set(prb.x1, triY, prb.z1);
-          const curWave = waveRef.current;
-          const pTri = calculateElectromagneticParameters(curWave, materialRef.current, wallRef.current);
-          const thI = curWave.boundaryModel === 'guide_ondes' ? 0 : pTri.thetaIRad;
+          const thI = curWave.boundaryModel === 'guide_ondes' ? 0 : curParams.thetaIRad;
           const kx = Math.cos(thI);
           const kz = Math.sin(thI);
 
-          const eSign = f1.amplitude >= 0 ? 1 : -1;
-          const eLen = Math.max(0.25, Math.min(2.6, Math.abs(f1.amplitude) * 1.25));
-          triEArrowRef.current.setDirection(new THREE.Vector3(0, eSign, 0));
+          const eSign = amp1 >= 0 ? 1 : -1;
+          const eLen = Math.max(0.25, Math.min(2.6, Math.abs(amp1) * 1.25));
+          _triDirVec.set(0, eSign, 0);
+          triEArrowRef.current.setDirection(_triDirVec);
           triEArrowRef.current.setLength(eLen, Math.min(0.35, eLen * 0.3), 0.16);
 
-          triKArrowRef.current.setDirection(new THREE.Vector3(kx, 0, kz));
+          _triDirVec.set(kx, 0, kz);
+          triKArrowRef.current.setDirection(_triDirVec);
           triKArrowRef.current.setLength(1.85, 0.34, 0.16);
 
           const hx = -kz * eSign;
           const hz = kx * eSign;
-          const hLen = Math.max(0.22, Math.min(2.2, Math.abs(f1.amplitude) * 1.0));
-          triHArrowRef.current.setDirection(new THREE.Vector3(hx, 0, hz));
+          const hLen = Math.max(0.22, Math.min(2.2, Math.abs(amp1) * 1.0));
+          _triDirVec.set(hx, 0, hz);
+          triHArrowRef.current.setDirection(_triDirVec);
           triHArrowRef.current.setLength(hLen, Math.min(0.3, hLen * 0.3), 0.14);
         }
       }
 
       if (syncUi) {
-        onTimeUpdateRef.current(tNow, f1.amplitude, f2.amplitude);
+        onTimeUpdateRef.current(tNow, amp1, amp2);
       }
       renderer.render(scene, camera);
     };
@@ -680,7 +726,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     const tick = () => {
       if (disposed) return;
       const now = performance.now();
-      const dt = Math.min(0.05, (now - lastPerf) / 1000);
+      const dt = Math.min(0.15, Math.max(0, (now - lastPerf) / 1000));
       lastPerf = now;
 
       if (simRef.current.isPlaying) {
@@ -748,34 +794,57 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     };
   }, []);
 
-  // Rebuild multi-part PBR barrier assembly on wall/material/mode changes
+  // Rebuild multi-part PBR barrier assembly ONLY when geometry or visual material/mode changes (rAF-coalesced)
   useEffect(() => {
     const scene = sceneRef.current;
     const renderer = rendererRef.current;
     if (!scene || !renderer) return;
 
-    if (wallGroupRef.current) {
-      scene.remove(wallGroupRef.current);
-      disposeGroupResources(wallGroupRef.current);
-      wallGroupRef.current = null;
-    }
+    const rafId = requestAnimationFrame(() => {
+      if (wallGroupRef.current) {
+        scene.remove(wallGroupRef.current);
+        disposeGroupResources(wallGroupRef.current);
+        wallGroupRef.current = null;
+      }
 
-    const maxAniso = renderer.capabilities.getMaxAnisotropy();
-    const newAssembly = buildBarrierAssembly(
-      wall,
-      material,
-      wave,
-      maxAniso,
-      isSoftwareGlRef.current
-    );
-    scene.add(newAssembly);
-    wallGroupRef.current = newAssembly;
-  }, [wall, material, wave.boundaryModel]);
+      const maxAniso = renderer.capabilities.getMaxAnisotropy();
+      const newAssembly = buildBarrierAssembly(
+        wall,
+        material,
+        wave,
+        maxAniso,
+        isSoftwareGlRef.current
+      );
+      scene.add(newAssembly);
+      wallGroupRef.current = newAssembly;
 
-  // Rebuild 3D Snell-Descartes ray diagram & Ch. 3 standing-wave envelope when parameters or toggles change
+      if (!simRef.current.isPlaying) {
+        renderNowRef.current?.();
+      }
+    });
+
+    return () => cancelAnimationFrame(rafId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    wall.textureProfile,
+    wall.thickness,
+    wall.textureDepth,
+    wall.texturePeriod,
+    wall.posX,
+    wall.height,
+    material.id,
+    material.color,
+    material.isConductor,
+    material.isPEC,
+    wave.boundaryModel,
+  ]);
+
+  // Rebuild 3D Snell-Descartes ray diagram ONLY when optical angles/reflection/geometry or showRays change (rAF-coalesced)
   useEffect(() => {
     const raysGroup = raysGroupRef.current;
-    if (raysGroup) {
+    if (!raysGroup) return;
+
+    const rafId = requestAnimationFrame(() => {
       disposeGroupResources(raysGroup);
       while (raysGroup.children.length > 0) {
         raysGroup.remove(raysGroup.children[0]);
@@ -783,10 +852,14 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       raysGroup.visible = simulation.showRays;
 
       if (simulation.showRays) {
-        const params = calculateElectromagneticParameters(wave, material, wall);
-        const xFront = wall.posX - wall.thickness / 2 - wall.textureDepth;
-        const rayY = Math.max(2.0, (wall.height || 2.8) + 0.6);
-        const thI = wave.boundaryModel === 'guide_ondes' ? 0 : params.thetaIRad;
+        const params = emParamsRef.current;
+        const curWave = waveRef.current;
+        const curWall = wallRef.current;
+        const curMat = materialRef.current;
+
+        const xFront = curWall.posX - curWall.thickness / 2 - curWall.textureDepth;
+        const rayY = Math.max(2.0, (curWall.height || 2.8) + 0.6);
+        const thI = curWave.boundaryModel === 'guide_ondes' ? 0 : params.thetaIRad;
         const thT = params.thetaTRad;
         const rayLen = 7.5;
 
@@ -822,7 +895,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
           colorHex: number
         ) => {
           if (angleRad < 0.025) return;
-          const steps = Math.max(12, Math.ceil((angleRad * 32) / (Math.PI / 2)));
+          const steps = Math.max(10, Math.ceil((angleRad * 20) / (Math.PI / 2)));
           const arcPts: THREE.Vector3[] = [];
           const innerArcPts: THREE.Vector3[] = [];
           const fanVerts: number[] = [];
@@ -892,7 +965,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
         }
 
         // Transmitted ray arrow + θt arc (emerald, hidden in PEC or total internal reflection)
-        if (!material.isPEC && !material.isConductor && !params.isTotalInternalReflection) {
+        if (!curMat.isPEC && !curMat.isConductor && !params.isTotalInternalReflection) {
           const dirT = new THREE.Vector3(Math.cos(thT), 0, Math.sin(thT)).normalize();
           const transArrow = new THREE.ArrowHelper(
             dirT,
@@ -906,10 +979,34 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
           addAngleArc(2.85, thT, 1, 1, 0x34d399);
         }
       }
-    }
 
+      if (!simRef.current.isPlaying) {
+        renderNowRef.current?.();
+      }
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [
+    emParams.thetaIRad,
+    emParams.thetaTRad,
+    emParams.gammaMag,
+    emParams.isTotalInternalReflection,
+    wall.posX,
+    wall.thickness,
+    wall.textureDepth,
+    wall.height,
+    material.isPEC,
+    material.isConductor,
+    wave.boundaryModel,
+    simulation.showRays,
+  ]);
+
+  // Rebuild Ch. 3 standing-wave envelope ONLY when wave/wall/material or showEnvelope changes (rAF-coalesced)
+  useEffect(() => {
     const envGroup = envelopeGroupRef.current;
-    if (envGroup) {
+    if (!envGroup) return;
+
+    const rafId = requestAnimationFrame(() => {
       disposeGroupResources(envGroup);
       while (envGroup.children.length > 0) {
         envGroup.remove(envGroup.children[0]);
@@ -918,9 +1015,9 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
 
       if (simulation.showEnvelope) {
         const { points, xFront, dFirstMinSim } = calculateStandingWaveEnvelope(
-          wave,
-          wall,
-          material,
+          waveRef.current,
+          wallRef.current,
+          materialRef.current,
           -15,
           15,
           150
@@ -941,8 +1038,20 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
           envGroup.add(pin);
         }
       }
+
+      if (!simRef.current.isPlaying) {
+        renderNowRef.current?.();
+      }
+    });
+
+    return () => cancelAnimationFrame(rafId);
+  }, [wave, wall, material, simulation.showEnvelope]);
+
+  // Sync canvas immediately ONLY when paused (running animation loop handles live frames)
+  useEffect(() => {
+    if (!simulation.isPlaying) {
+      renderNowRef.current?.();
     }
-    renderNowRef.current?.();
   }, [
     wave,
     wall,
@@ -951,6 +1060,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     probe.z1,
     probe.x2,
     probe.z2,
+    simulation.isPlaying,
     simulation.showSurface,
     simulation.showVectors,
     simulation.showRays,
@@ -976,16 +1086,9 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     }
   }, [simulation.cameraMode]);
 
-  const emParams = calculateElectromagneticParameters(wave, material, wall);
-  const isNearBrewster =
-    wave.boundaryModel !== 'guide_ondes' &&
-    wave.guidedMode === 'TM' &&
-    emParams.brewsterDeg !== null &&
-    Math.abs(wave.incidenceAngleDeg - emParams.brewsterDeg) <= 1.0;
-
   return (
-    <div className="@container relative w-full h-full select-none overflow-hidden bg-[#080c15]">
-      {/* Dedicated WebGL canvas mount */}
+    <div className="relative w-full h-full select-none overflow-hidden">
+      {/* Dedicated full-screen WebGL canvas mount */}
       <div
         ref={containerRef}
         data-testid="three-viewport"
@@ -993,142 +1096,8 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       />
 
       {contextLost && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#080c15]/95 text-slate-200 text-sm">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#040814]/90 text-slate-200 text-sm">
           Contexte WebGL interrompu — réinitialisation en cours...
-        </div>
-      )}
-
-      {/* Top-left compact Snell-Descartes Angle d'incidence (θi) HUD */}
-      {wave.boundaryModel !== 'guide_ondes' && onWaveChange && (
-        <div
-          aria-label="Contrôle rapide de l'angle d'incidence"
-          className="absolute top-3 left-3 z-10 bg-[#0c1322]/92 px-2.5 py-2 rounded-lg border border-slate-700/70 shadow-md w-[185px] @[560px]:w-[228px] space-y-1.5"
-        >
-          <div className="flex items-center justify-between gap-2 text-[11px] font-mono">
-            <label htmlFor="hud-incidence-angle" className="text-slate-200 font-semibold">
-              θi = <span className="text-cyan-300">{Math.round(wave.incidenceAngleDeg)}°</span>
-            </label>
-            <span
-              className={
-                emParams.isTotalInternalReflection
-                  ? 'text-rose-300 font-semibold'
-                  : isNearBrewster
-                    ? 'text-amber-300 font-semibold'
-                    : 'text-emerald-300'
-              }
-            >
-              {material.isPEC
-                ? 'PEC'
-                : emParams.isTotalInternalReflection
-                  ? 'TIR'
-                  : isNearBrewster
-                    ? 'Brewster'
-                    : `θt = ${emParams.thetaTDeg.toFixed(1)}°`}
-            </span>
-          </div>
-          <input
-            id="hud-incidence-angle"
-            aria-label="Angle d'incidence sur banc 3D (θi)"
-            type="range"
-            min="0"
-            max="85"
-            step="1"
-            value={wave.incidenceAngleDeg}
-            onChange={(e) =>
-              onWaveChange({ ...wave, incidenceAngleDeg: parseFloat(e.target.value) })
-            }
-            className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-          />
-          <div className="hidden @[560px]:flex items-center gap-1">
-            {[0, 30, 45, 60].map((deg) => (
-              <button
-                key={deg}
-                type="button"
-                onClick={() => onWaveChange({ ...wave, incidenceAngleDeg: deg })}
-                className={`flex-1 py-0.5 rounded text-[10px] font-mono border transition-colors ${
-                  Math.round(wave.incidenceAngleDeg) === deg
-                    ? 'bg-cyan-500/20 border-cyan-500/70 text-cyan-200 font-semibold'
-                    : 'bg-slate-900/80 border-slate-700/70 text-slate-300 hover:text-white'
-                }`}
-              >
-                {deg}°
-              </button>
-            ))}
-            {emParams.brewsterDeg !== null && (
-              <button
-                type="button"
-                title={`Angle de Brewster TM (${emParams.brewsterDeg.toFixed(1)}°)`}
-                onClick={() =>
-                  onWaveChange({
-                    ...wave,
-                    guidedMode: 'TM',
-                    incidenceAngleDeg: Math.round(emParams.brewsterDeg!),
-                  })
-                }
-                className={`px-1.5 py-0.5 rounded text-[10px] font-mono border transition-colors ${
-                  isNearBrewster
-                    ? 'bg-amber-500/20 border-amber-500/70 text-amber-200 font-semibold'
-                    : 'bg-slate-900/80 border-slate-700/70 text-amber-300 hover:text-amber-200'
-                }`}
-              >
-                θB
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Minimal non-blocking probe instruction badge (solid bg, no backdrop-blur) */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-2.5 bg-[#0c1322]/92 px-3 py-1.5 rounded-lg border border-slate-700/70 text-xs text-slate-300 shadow-md pointer-events-none">
-        <span className="font-mono text-cyan-300 font-semibold">Banc Optique 3D</span>
-        <span className="hidden @[560px]:inline text-slate-600" aria-hidden="true">·</span>
-        <span className="hidden @[560px]:inline text-slate-300 text-[11px]">
-          Glisser <span className="text-cyan-300 font-mono">Sonde 1</span> ou{' '}
-          <span className="text-amber-300 font-mono">Sonde 2</span>
-        </span>
-      </div>
-
-      {/* Bottom-left probe coordinate legend */}
-      <div className="absolute bottom-3 left-3 z-10 flex items-center gap-3 bg-[#0c1322]/92 px-3 py-1.5 rounded-lg border border-slate-700/70 text-[11px] text-slate-200 font-mono pointer-events-none">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-cyan-400" aria-hidden="true" />
-          <span>S1 (x={probe.x1.toFixed(1)}m)</span>
-        </div>
-        <span className="text-slate-600" aria-hidden="true">/</span>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-amber-400" aria-hidden="true" />
-          <span>S2 (x={probe.x2.toFixed(1)}m)</span>
-        </div>
-      </div>
-
-      {/* Bottom-right 3D camera viewpoint switcher (shown whenever viewport width >= 560px) */}
-      {onCameraModeChange && (
-        <div
-          role="group"
-          aria-label="Angles de vue 3D"
-          className="hidden @[560px]:flex absolute bottom-3 right-3 z-10 items-center gap-1 bg-[#0c1322]/92 p-1 rounded-lg border border-slate-700/70 shadow-md"
-        >
-          {CAMERA_ORDER.map((mode) => {
-            const preset = CAMERA_PRESETS[mode];
-            const isActive = simulation.cameraMode === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                title={preset.label}
-                aria-label={preset.label}
-                aria-pressed={isActive}
-                onClick={() => onCameraModeChange(mode)}
-                className={`px-2 py-1 rounded text-[11px] font-medium transition-colors whitespace-nowrap border ${
-                  isActive
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/60'
-                    : 'text-slate-300 border-transparent hover:text-white hover:bg-slate-800/80'
-                }`}
-              >
-                {preset.shortLabel}
-              </button>
-            );
-          })}
         </div>
       )}
     </div>

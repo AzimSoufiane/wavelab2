@@ -4,6 +4,8 @@ import {
   MATERIAL_PRESETS,
   calculateElectromagneticParameters,
   calculateWaveField,
+  evaluateSurfaceField,
+  SurfaceFieldScratch,
   calculateStandingWaveEnvelope,
   calculateFresnelCurve,
   reconstructUnknownMedium,
@@ -226,6 +228,35 @@ test('Courbes R(θi) et T\'(θi) : conservation R + T\' = 1, Brewster et réflex
       assert.equal(pt.tPrimeTE, 0, `Expected T'_TE = 0 in TIR at ${pt.angleDeg}°`);
       assert.equal(pt.tPrimeTM, 0, `Expected T'_TM = 0 in TIR at ${pt.angleDeg}°`);
     }
+  }
+});
+
+test('evaluateSurfaceField fast path matches calculateWaveField across all zones', () => {
+  const poly = MATERIAL_PRESETS[0];
+  const scratch: SurfaceFieldScratch = {
+    amplitude: 0,
+    amplitudeZ: 0,
+    fluxX: 0,
+    fluxZ: 0,
+    inObstacle: false,
+    isEvanescent: false,
+  };
+  const obliqueWave: WaveConfig = { ...baseWave, incidenceAngleDeg: 35, polarization: 'circulaire' };
+  const params = calculateElectromagneticParameters(obliqueWave, poly, baseWall);
+
+  for (const [x, z] of [
+    [-6.0, 1.5],
+    [0.0, -0.5],
+    [5.5, 2.0],
+  ]) {
+    const ref = calculateWaveField(x, z, 0.37, obliqueWave, baseWall, poly);
+    evaluateSurfaceField(x, z, 0.37, obliqueWave, baseWall, poly, params, scratch);
+    assert.ok(Math.abs(scratch.amplitude - ref.amplitude) < 1e-12);
+    assert.ok(Math.abs(scratch.amplitudeZ - ref.amplitudeZ) < 1e-12);
+    assert.ok(Math.abs(scratch.fluxX - ref.fluxX) < 1e-12);
+    assert.ok(Math.abs(scratch.fluxZ - ref.fluxZ) < 1e-12);
+    assert.equal(scratch.inObstacle, ref.inObstacle);
+    assert.equal(scratch.isEvanescent, ref.isEvanescent);
   }
 });
 

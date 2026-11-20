@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { SegmentedControl } from 'glisse';
 import { DualProbeState, MaterialPreset, WallGeometry, WaveConfig } from '../types';
 import {
   calculateElectromagneticParameters,
@@ -29,10 +30,20 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scopeMode, setScopeMode] = useState<ScopeMode>('time');
-  const params = calculateElectromagneticParameters(wave, material, wall);
+  const params = useMemo(
+    () => calculateElectromagneticParameters(wave, material, wall),
+    [wave, material, wall]
+  );
+  const fresnelCurve = useMemo(
+    () => calculateFresnelCurve(wave, material),
+    [wave.frequency, wave.medium1EpsilonR, material]
+  );
   const deltaX = Math.abs(probe.x2 - probe.x1);
-  const { deltaPhiRad: liveDeltaPhiRad, deltaPhiDeg: liveDeltaPhiDeg } =
-    calculateProbePhaseDelta(wave, params.n1, params.n2, params.fcRatio, params.isCutoff, deltaX);
+  const { deltaPhiRad: liveDeltaPhiRad, deltaPhiDeg: liveDeltaPhiDeg } = useMemo(
+    () =>
+      calculateProbePhaseDelta(wave, params.n1, params.n2, params.fcRatio, params.isCutoff, deltaX),
+    [wave, params.n1, params.n2, params.fcRatio, params.isCutoff, deltaX]
+  );
 
   const halfThickness = wall.thickness / 2;
   const getZoneLabel = (x: number) => {
@@ -157,7 +168,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
       }
     } else {
       // Chapitre 1 (§1.7.6) : Courbes de Fresnel |Γ|(θi) ou énergie R(θi) & T'(θi)
-      const curve = calculateFresnelCurve(wave, material);
+      const curve = fresnelCurve;
       const padL = 26;
       const padR = 8;
       const padT = 10;
@@ -269,13 +280,14 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
       }
     }
   }, [
-    probe.history1,
-    probe.history2,
+    scopeMode === 'time' ? probe.history1 : null,
+    scopeMode === 'time' ? probe.history2 : null,
     probe.x1,
     probe.x2,
     wave,
     wall,
     material,
+    fresnelCurve,
     params.gammaMag,
     params.reflectionR,
     params.transmissionT,
@@ -287,33 +299,33 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
   return (
     <section
       aria-label="Oscilloscope bifaisceau et analyseur d'onde stationnaire"
-      className="w-full bg-[#080d18] border-t border-slate-800 px-3 py-2.5 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 text-xs select-none shrink-0"
+      className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 text-xs select-none"
     >
       {/* Télémétrie comparative & Ch. 3 */}
-      <div className="flex flex-col space-y-2 lg:min-w-[400px]">
+      <div className="flex flex-col space-y-2 lg:min-w-[360px]">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 text-slate-100 font-semibold">
-            <Activity className="w-4 h-4 text-cyan-400 shrink-0" />
+            <Activity className="w-4 h-4 text-[#0a84ff] shrink-0" />
             <span>Oscilloscope &amp; Stationnarité</span>
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-300">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-200">
             <span data-testid="tos-readout">
-              TOS=<b className="text-cyan-300">{params.tos.toFixed(2)}</b>
+              TOS=<b className="text-[#0a84ff]">{params.tos.toFixed(2)}</b>
             </span>
             <span className="text-slate-600" aria-hidden="true">·</span>
             <span data-testid="ros-readout">
-              ROS=<b className="text-amber-300">{Number.isFinite(params.ros) ? params.ros.toFixed(2) : '∞'}</b>
+              ROS=<b className="text-slate-100">{Number.isFinite(params.ros) ? params.ros.toFixed(2) : '∞'}</b>
             </span>
             <span className="text-slate-600" aria-hidden="true">·</span>
-            <span className="flex items-center gap-1 text-indigo-300">
-              <ArrowRightLeft className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-slate-300">
+              <ArrowRightLeft className="w-3 h-3 text-[#0a84ff]" />
               Δφ={liveDeltaPhiRad.toFixed(2)} rad
             </span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
-          <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1 min-w-0">
+          <div className="p-2 rounded-lg bg-black/25 border border-white/10 space-y-1 min-w-0">
             <div className="text-cyan-300 font-semibold flex items-center justify-between gap-2">
               <span className="truncate">S1 (x₁={probe.x1.toFixed(1)}m)</span>
               <span className="text-[10px] text-slate-400 font-normal truncate">{zone1}</span>
@@ -332,7 +344,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
                   key={z}
                   type="button"
                   onClick={() => onProbePreset(1, z)}
-                  className="flex-1 px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] rounded text-slate-300 transition-colors truncate"
+                  className="flex-1 px-1 py-0.5 bg-white/[0.08] hover:bg-[#0a84ff]/30 text-[10px] rounded text-slate-200 transition-colors truncate"
                 >
                   {z === 'incident' ? 'Incident' : z === 'inside' ? 'Paroi' : 'Transmis'}
                 </button>
@@ -340,7 +352,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
             </div>
           </div>
 
-          <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 space-y-1 min-w-0">
+          <div className="p-2 rounded-lg bg-black/25 border border-white/10 space-y-1 min-w-0">
             <div className="text-amber-300 font-semibold flex items-center justify-between gap-2">
               <span className="truncate">S2 (x₂={probe.x2.toFixed(1)}m)</span>
               <span className="text-[10px] text-slate-400 font-normal truncate">{zone2}</span>
@@ -359,7 +371,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
                   key={z}
                   type="button"
                   onClick={() => onProbePreset(2, z)}
-                  className="flex-1 px-1 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] rounded text-slate-300 transition-colors truncate"
+                  className="flex-1 px-1 py-0.5 bg-white/[0.08] hover:bg-[#0a84ff]/30 text-[10px] rounded text-slate-200 transition-colors truncate"
                 >
                   {z === 'incident' ? 'Incident' : z === 'inside' ? 'Paroi' : 'Transmis'}
                 </button>
@@ -370,38 +382,27 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
       </div>
 
       {/* Écran oscilloscope / Espace |E(x)| / Courbes de Fresnel */}
-      <div className="flex-1 w-full flex flex-col gap-1.5 min-w-0">
+      <div className="flex-1 w-full flex flex-col gap-2 min-w-0">
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="inline-flex flex-wrap max-w-full bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-[11px] font-mono">
-            {(
-              [
-                { id: 'time', label: 'Temps E(t)' },
-                { id: 'spatial', label: 'Espace |E(x)|' },
-                { id: 'fresnel', label: 'Fresnel |Γ|' },
-                { id: 'energy', label: "R & T' (θi)" },
-              ] as const
-            ).map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setScopeMode(tab.id)}
-                className={`px-2 py-0.5 rounded transition-colors whitespace-nowrap ${
-                  scopeMode === tab.id
-                    ? 'bg-cyan-500 text-slate-950 font-semibold'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            aria-label="Mode d'affichage oscilloscope"
+            value={scopeMode}
+            onValueChange={(val) => setScopeMode(val as ScopeMode)}
+            style={{ '--lg-tab-width': '72px' } as React.CSSProperties}
+            items={[
+              { value: 'time', label: 'E(t)' },
+              { value: 'spatial', label: '|E(x)|' },
+              { value: 'fresnel', label: 'Fresnel' },
+              { value: 'energy', label: "R & T'" },
+            ]}
+          />
 
           <div className="font-mono text-[10px] text-slate-400 flex items-center gap-2 flex-wrap">
             {scopeMode === 'time' && (
               <>
                 <span className="text-cyan-400 font-semibold">CH1 S1</span>
                 <span className="text-amber-400 font-semibold">CH2 S2</span>
-                <span className="hidden sm:inline text-slate-500">
+                <span className="hidden sm:inline text-slate-400">
                   · Emax={params.eMax.toFixed(2)} · Emin={params.eMin.toFixed(2)} V/m
                 </span>
               </>
@@ -439,7 +440,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
           </div>
         </div>
 
-        <div className="relative h-24 rounded-lg overflow-hidden border border-slate-800 bg-[#060a12]">
+        <div className="relative h-24 rounded-lg overflow-hidden border border-white/10 bg-[#040814]/85">
           <canvas
             ref={canvasRef}
             width={680}
@@ -463,7 +464,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
             <div className="absolute bottom-1.5 right-2.5 font-mono text-[10px] text-slate-400 pointer-events-none flex items-center gap-2">
               <span>|x₂ - x₁| = {deltaX.toFixed(2)} m</span>
               <span className="text-slate-600" aria-hidden="true">|</span>
-              <span className="text-indigo-300 font-semibold">
+              <span className="text-[#0a84ff] font-semibold">
                 Δφ = {liveDeltaPhiRad.toFixed(2)} rad ({(liveDeltaPhiDeg % 360).toFixed(1)}°)
               </span>
             </div>

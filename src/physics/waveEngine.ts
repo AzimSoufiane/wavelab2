@@ -136,6 +136,15 @@ export interface FieldValue {
   isEvanescent: boolean;
 }
 
+export interface SurfaceFieldScratch {
+  amplitude: number;
+  amplitudeZ: number;
+  fluxX: number;
+  fluxZ: number;
+  inObstacle: boolean;
+  isEvanescent: boolean;
+}
+
 /**
  * Fréquence de coupure fc pour un guide d'onde rectangulaire TE_mn / TM_mn :
  * fc = (c / (2 * sqrt(eps_r))) * sqrt((m/a)^2 + (n/b)^2)
@@ -157,7 +166,7 @@ export function calculateCutoffFrequency(
 
 export function getVisualCSim(wave: WaveConfig): number {
   const base = Math.max(0.1, wave.waveSpeedC);
-  return wave.frequency > 2.5 ? base * (wave.frequency / 2.5) : base;
+  return wave.frequency > 1.6 ? base * (wave.frequency / 1.6) : base;
 }
 
 /**
@@ -574,8 +583,9 @@ function evaluateFieldComponents(
 ): { ampY: number; ampZ: number; inWall: boolean; isCutoff: boolean } {
   const cSim = getVisualCSim(wave); // Échelle visuelle 3D anti-aliasing (m_scene / s_sim)
   const f = wave.frequency;
-  const omegaSim = 2 * Math.PI * f;
-  const k0Sim = omegaSim / cSim;
+  const fTemporal = f > 1.6 ? 1.6 + Math.min(0.8, (f - 1.6) * 0.1) : f;
+  const omegaSim = 2 * Math.PI * fTemporal;
+  const k0Sim = (2 * Math.PI * f) / cSim;
   const k1Sim = k0Sim * params.n1;
   const k2Sim = k0Sim * params.n2;
 
@@ -791,6 +801,49 @@ function evaluateFieldComponents(
 }
 
 /**
+ * Évaluation ultra-rapide sans allocation pour la grille 3D et les vecteurs <S> :
+ * réutilise les paramètres électromagnétiques précalculés et évite les 4 évaluations de gradient.
+ */
+export function evaluateSurfaceField(
+  x: number,
+  z: number,
+  t: number,
+  wave: WaveConfig,
+  wall: WallGeometry,
+  material: MaterialPreset,
+  params: ReturnType<typeof calculateElectromagneticParameters>,
+  out: SurfaceFieldScratch
+): SurfaceFieldScratch {
+  const center = evaluateFieldComponents(x, z, t, wave, wall, material, params);
+
+  let dirX = 1;
+  let dirZ = 0;
+  if (center.inWall && !material.isPEC) {
+    dirX = params.isTotalInternalReflection ? 0 : Math.cos(params.thetaTRad);
+    dirZ = Math.sin(params.thetaTRad);
+  } else if (x < wall.posX - wall.thickness / 2) {
+    const netTransmit = Math.max(0.05, 1 - params.reflectionR);
+    dirX = Math.cos(params.thetaIRad) * netTransmit;
+    dirZ = Math.sin(params.thetaIRad);
+  } else if ((material.isPEC || material.isConductor) && x >= wall.posX - wall.thickness / 2) {
+    dirX = 0;
+    dirZ = 0;
+  } else {
+    dirX = Math.cos(params.thetaIRad);
+    dirZ = Math.sin(params.thetaIRad);
+  }
+
+  const fluxMag = Math.hypot(dirX, dirZ);
+  out.amplitude = center.ampY;
+  out.amplitudeZ = center.ampZ;
+  out.fluxX = fluxMag > 1e-4 ? dirX / fluxMag : 0;
+  out.fluxZ = fluxMag > 1e-4 ? dirZ / fluxMag : 0;
+  out.inObstacle = center.inWall;
+  out.isEvanescent = center.isCutoff && center.inWall;
+  return out;
+}
+
+/**
  * Calcul complet du champ E(x, z, t) et du gradient / flux de Poynting réel.
  */
 export function calculateWaveField(
@@ -799,9 +852,10 @@ export function calculateWaveField(
   t: number,
   wave: WaveConfig,
   wall: WallGeometry,
-  material: MaterialPreset
+  material: MaterialPreset,
+  precomputedParams?: ReturnType<typeof calculateElectromagneticParameters>
 ): FieldValue {
-  const params = calculateElectromagneticParameters(wave, material, wall);
+  const params = precomputedParams ?? calculateElectromagneticParameters(wave, material, wall);
   const center = evaluateFieldComponents(x, z, t, wave, wall, material, params);
 
   const delta = 0.08;

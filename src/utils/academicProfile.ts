@@ -2,12 +2,14 @@ import { AcademicProfile } from '../types';
 
 const ACADEMIC_STORAGE_KEY = 'wavelab_ensa_m115_academic_profile';
 
+export const CONSTANT_INSTRUCTOR_NAME = 'EL MAMOUNI Anass';
+
 export const DEFAULT_ACADEMIC_PROFILE: AcademicProfile = {
   studentName: 'AZIM Soufiane',
   studentId: '',
   studentClass: 'GSR1-S1',
   studentEmail: 'soufianeazim.academic@gmail.com',
-  teacherName: '',
+  teacherName: CONSTANT_INSTRUCTOR_NAME,
   teacherTitle: 'Enseignant / Encadrant',
   teacherDepartment: 'Génie des Systèmes et Réseaux',
   teacherEmail: '',
@@ -26,6 +28,10 @@ export function loadAcademicProfile(): AcademicProfile {
     return {
       ...DEFAULT_ACADEMIC_PROFILE,
       ...parsed,
+      teacherName:
+        parsed.teacherName && parsed.teacherName.trim().length > 0
+          ? parsed.teacherName
+          : DEFAULT_ACADEMIC_PROFILE.teacherName,
     };
   } catch {
     return { ...DEFAULT_ACADEMIC_PROFILE };

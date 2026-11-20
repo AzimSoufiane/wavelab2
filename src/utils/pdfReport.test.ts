@@ -70,6 +70,8 @@ test('buildSimulationReportData summarizes parameters, Fresnel coefficients, and
   );
 
   assert.match(report.title, /WaveLab 3D/);
+  assert.equal(report.academic.studentName, 'AZIM Soufiane');
+  assert.equal(report.academic.teacherName, 'EL MAMOUNI Anass');
   assert.ok(report.parametersLeft.some((p) => p.label.includes('Frequence') && p.value.includes('1.00 GHz')));
   assert.ok(report.parametersRight.some((p) => p.label.includes('Materiau') && p.value.includes('Polystyr')));
 

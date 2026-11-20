@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button, Menu, SegmentedControl } from 'glisse';
 import {
   AcademicProfile,
   SimulationState,
@@ -22,8 +23,8 @@ import {
   Pause,
   RotateCcw,
   StepForward,
-  Camera,
-  Layers,
+  SlidersHorizontal,
+  ChevronDown,
   Waves,
   Download,
   FileText,
@@ -34,6 +35,8 @@ import {
   Trash2,
   Upload,
   GraduationCap,
+  MoreHorizontal,
+  Gauge,
 } from 'lucide-react';
 
 interface HeaderBarProps {
@@ -45,37 +48,32 @@ interface HeaderBarProps {
     material: MaterialPreset,
     wave: WaveConfig
   ) => void;
-  onToggleSidebar: () => void;
+  sheetExpanded: boolean;
+  onToggleSheet: () => void;
   wave: WaveConfig;
   wall: WallGeometry;
   material: MaterialPreset;
-  probe: DualProbeState;
+  probeRef: React.RefObject<DualProbeState>;
   onLoadSavedPreset: (preset: SavedPreset) => void;
   academicProfile: AcademicProfile;
   onOpenAcademicModal: () => void;
 }
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({
+export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
   simulation,
   onSimulationChange,
   onApplyPreset,
-  onToggleSidebar,
+  sheetExpanded,
+  onToggleSheet,
   wave,
   wall,
   material,
-  probe,
+  probeRef,
   onLoadSavedPreset,
   academicProfile,
   onOpenAcademicModal,
 }) => {
   const speeds = [0.25, 0.5, 1.0, 1.5, 2.0];
-  const cameraModes: { id: CameraMode; label: string }[] = [
-    { id: 'perspective', label: 'Vue 3D' },
-    { id: 'top', label: 'Dessus' },
-    { id: 'profile', label: 'Profil' },
-    { id: 'incident', label: 'Face Avant' },
-    { id: 'isometric', label: 'Arrière 3/4' },
-  ];
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>([]);
   const [showSavedModal, setShowSavedModal] = useState(false);
@@ -94,13 +92,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   };
 
   const handleExportCsv = () => {
-    exportOscilloscopeDataToCsv(probe, wave, wall, material);
+    exportOscilloscopeDataToCsv(probeRef.current, wave, wall, material);
     showToast('Données CSV téléchargées.');
   };
 
   const handleExportPdf = () => {
     try {
-      exportSimulationPdfReport(wave, wall, material, probe, simulation, academicProfile);
+      exportSimulationPdfReport(wave, wall, material, probeRef.current, simulation, academicProfile);
       showToast('Rapport PDF généré et téléchargé.');
     } catch (err) {
       console.error('Erreur lors de la génération du rapport PDF', err);
@@ -109,7 +107,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   };
 
   const handleShareLink = async () => {
-    const shareableUrl = serializeStateToUrl(wave, wall, material, probe);
+    const shareableUrl = serializeStateToUrl(wave, wall, material, probeRef.current);
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(shareableUrl);
@@ -130,7 +128,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       minute: '2-digit',
     })}`;
     const name = saveNameInput.trim() || defaultName;
-    const updated = savePresetToLocalStorage(name, wave, wall, material, probe);
+    const updated = savePresetToLocalStorage(name, wave, wall, material, probeRef.current);
     setSavedPresets(updated);
     setSaveNameInput('');
     setShowSavedModal(false);
@@ -251,7 +249,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             posX: 0,
             height: 2.8,
           },
-          MATERIAL_PRESETS[2], // Air
+          MATERIAL_PRESETS[2],
           {
             frequency: 1.0,
             amplitude: 1.3,
@@ -262,7 +260,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             modeN: 0,
             polarization: 'rectiligne',
             incidenceAngleDeg: 52,
-            medium1EpsilonR: 2.25, // Verre n1 = 1.5
+            medium1EpsilonR: 2.25,
             boundaryModel: 'dioptre_semi_infini',
             waveSpeedC: 4.0,
           }
@@ -280,7 +278,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             posX: 0,
             height: 3.0,
           },
-          MATERIAL_PRESETS[3], // PEC
+          MATERIAL_PRESETS[3],
           {
             frequency: 1.0,
             amplitude: 1.2,
@@ -309,7 +307,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             posX: 0,
             height: 2.8,
           },
-          MATERIAL_PRESETS[5], // Cuivre réel
+          MATERIAL_PRESETS[5],
           {
             frequency: 10.0,
             amplitude: 1.2,
@@ -338,7 +336,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             posX: 0,
             height: 2.5,
           },
-          MATERIAL_PRESETS[1], // Béton
+          MATERIAL_PRESETS[1],
           {
             frequency: 1.2,
             amplitude: 1.3,
@@ -416,198 +414,179 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     }
   };
 
+  const nextSpeed = speeds[(speeds.indexOf(simulation.speed) + 1) % speeds.length];
+
   return (
     <>
-      <header className="w-full min-h-13 bg-[#090e1a] border-b border-slate-800 px-2.5 sm:px-4 py-1.5 flex items-center justify-between gap-2 sm:gap-4 z-30 select-none shrink-0">
-        {/* Zone 1 : Bouton panneau & Identité */}
-        <div className="flex items-center gap-2 min-w-0 shrink-0">
-          <button
-            type="button"
-            onClick={onToggleSidebar}
-            aria-label="Afficher ou masquer le panneau latéral"
-            className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-cyan-300 transition-colors shrink-0"
-          >
-            <Layers className="w-4 h-4" />
-          </button>
+      <header className="fixed top-3 left-3 right-3 z-30 pointer-events-none flex items-center justify-between gap-2 select-none">
+        {/* Zone 1 : Bouton feuille & Identité + Sélecteur scénario */}
+        <div className="pointer-events-auto flex items-center gap-2 min-w-0">
+          <Button
+            icon={sheetExpanded ? <ChevronDown className="w-4 h-4" /> : <SlidersHorizontal className="w-4 h-4" />}
+            onClick={onToggleSheet}
+            aria-label={sheetExpanded ? 'Réduire le panneau de paramètres' : 'Afficher le panneau de paramètres'}
+            title={sheetExpanded ? 'Réduire le panneau' : 'Ouvrir les paramètres'}
+          />
 
-          <div className="hidden sm:flex items-baseline gap-2.5 min-w-0">
-            <div className="flex items-center gap-1.5 whitespace-nowrap shrink-0">
-              <Waves className="w-4 h-4 text-cyan-400" />
-              <span className="font-semibold text-sm text-slate-100 tracking-tight">
+          <div className="flex items-center gap-2 px-3 h-10 rounded-full bottom-sheet-glass min-w-0">
+            <div className="hidden sm:flex items-center gap-1.5 whitespace-nowrap shrink-0">
+              <Waves className="w-4 h-4 text-[#0a84ff]" />
+              <span className="font-semibold text-[13px] text-white tracking-tight">
                 WaveLab 3D
               </span>
+              <span className="hidden xl:inline text-[11px] text-slate-300/80 font-mono">
+                · {academicProfile.institution}
+              </span>
             </div>
-            <span className="hidden md:inline text-xs text-slate-400 truncate">
-              {academicProfile.institution} · Mod-M115
-            </span>
+
+            <div className="hidden sm:block h-4 w-px bg-white/15 shrink-0" aria-hidden="true" />
+
+            <label htmlFor="preset-selector" className="sr-only">
+              Scénario pédagogique Mod-M115
+            </label>
+            <select
+              id="preset-selector"
+              value={selectedPreset}
+              onChange={(e) => handlePresetSelect(e.target.value)}
+              className="w-[148px] sm:w-[210px] md:w-[230px] bg-transparent text-xs text-slate-100 font-medium focus:outline-none cursor-pointer truncate"
+            >
+              <option value="dielectric_barrier" className="bg-[#0b1326] text-white">
+                Ch. 1/3 : Dioptre Polystyrène
+              </option>
+              <option value="brewster_tm" className="bg-[#0b1326] text-white">
+                Ch. 1 : Angle de Brewster TM
+              </option>
+              <option value="glass_air_tir" className="bg-[#0b1326] text-white">
+                Ch. 1 : Verre → Air (TIR)
+              </option>
+              <option value="pec_standing" className="bg-[#0b1326] text-white">
+                Ch. 2/3 : Conducteur Parfait (PEC)
+              </option>
+              <option value="copper_conductor" className="bg-[#0b1326] text-white">
+                Ch. 2 : Cuivre Réel 10 GHz
+              </option>
+              <option value="cavity_slot" className="bg-[#0b1326] text-white">
+                Réseau à Fentes (« Col d’air »)
+              </option>
+              <option value="te10_propagating" className="bg-[#0b1326] text-white">
+                Guide TE10 Propagatif (f &gt; fc)
+              </option>
+              <option value="cutoff_evanescent" className="bg-[#0b1326] text-white">
+                Guide sous Coupure (Évanescent)
+              </option>
+            </select>
           </div>
         </div>
 
-        {/* Zone 2 : Sélecteur de scénarios pédagogiques */}
-        <div className="flex-1 flex justify-center min-w-0">
-          <label htmlFor="preset-selector" className="sr-only">
-            Scénario pédagogique Mod-M115
-          </label>
-          <select
-            id="preset-selector"
-            value={selectedPreset}
-            onChange={(e) => handlePresetSelect(e.target.value)}
-            className="w-full max-w-[190px] sm:max-w-[290px] bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-400 truncate"
-          >
-            <option value="dielectric_barrier">Ch. 1/3 : Dioptre Polystyrène (εr=2,54)</option>
-            <option value="brewster_tm">Ch. 1 : Angle de Brewster TM (θB ≈ 57,9°)</option>
-            <option value="glass_air_tir">Ch. 1 : Verre → Air · Réflexion Totale</option>
-            <option value="pec_standing">Ch. 2/3 : Conducteur Parfait (PEC · Γ=-1)</option>
-            <option value="copper_conductor">Ch. 2 : Cuivre Réel 10 GHz (δs = 0,66 µm)</option>
-            <option value="cavity_slot">Réseau à Fentes (« Col d’air »)</option>
-            <option value="te10_propagating">Guide TE10 Propagatif (f &gt; fc)</option>
-            <option value="cutoff_evanescent">Guide sous Coupure (Évanescent)</option>
-          </select>
+        {/* Zone 2 : Modes de vue 3D (Glisse SegmentedControl sur desktop) */}
+        <div className="pointer-events-auto hidden lg:flex items-center">
+          <SegmentedControl
+            aria-label="Angles de vue 3D"
+            value={simulation.cameraMode}
+            onValueChange={(val) =>
+              onSimulationChange({ ...simulation, cameraMode: val as CameraMode })
+            }
+            style={{ '--lg-tab-width': '62px' } as React.CSSProperties}
+            items={[
+              { value: 'perspective', label: '3D' },
+              { value: 'top', label: 'Dessus' },
+              { value: 'profile', label: 'Profil' },
+              { value: 'incident', label: 'Face' },
+              { value: 'isometric', label: 'Arrière' },
+            ]}
+          />
         </div>
 
-        {/* Zone 3 : Outils de simulation & export */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowSavedModal(true)}
-            aria-label="Présélections enregistrées"
-            className="hidden sm:inline-flex p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-amber-300 transition-colors"
-          >
-            <Bookmark className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            aria-label="Exporter les traces CSV"
-            title="Exporter les traces CSV"
-            className="hidden md:inline-flex p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-cyan-300 transition-colors"
-          >
-            <Download className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onOpenAcademicModal}
-            aria-label="Informations étudiant et enseignant"
-            title="Informations étudiant & enseignant"
-            className="inline-flex items-center gap-1 p-2 md:px-2.5 md:py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-800 hover:text-cyan-300 transition-colors shrink-0"
-          >
-            <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden md:inline">Infos</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleExportPdf}
-            aria-label="Générer un rapport PDF"
-            title="Générer un rapport PDF"
-            className="inline-flex items-center gap-1 p-2 md:px-2.5 md:py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-800 hover:text-emerald-300 transition-colors shrink-0"
-          >
-            <FileText className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden md:inline">PDF</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleShareLink}
-            aria-label="Copier le lien de simulation"
-            className="hidden md:inline-flex p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-indigo-300 transition-colors"
-          >
-            <Share2 className="w-4 h-4" />
-          </button>
-
-          <div className="hidden sm:block h-5 w-px bg-slate-800 mx-0.5" aria-hidden="true" />
-
-          <button
-            type="button"
+        {/* Zone 3 : Actions icônes Glisse Button + Glisse Menu */}
+        <div className="pointer-events-auto flex items-center gap-1.5 shrink-0">
+          <Button
+            variant={simulation.isPlaying ? 'glass' : 'filled'}
+            icon={simulation.isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             onClick={() =>
               onSimulationChange({ ...simulation, isPlaying: !simulation.isPlaying })
             }
             aria-label={simulation.isPlaying ? 'Mettre en pause' : 'Lancer la simulation'}
-            className={`p-2 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap ${
-              simulation.isPlaying
-                ? 'bg-amber-500/20 border border-amber-500/60 text-amber-300 hover:bg-amber-500/30'
-                : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400'
-            }`}
-          >
-            {simulation.isPlaying ? (
-              <>
-                <Pause className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Pause</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Lire</span>
-              </>
-            )}
-          </button>
+            title={simulation.isPlaying ? 'Pause' : 'Lire'}
+          />
 
-          <button
-            type="button"
-            onClick={() =>
-              onSimulationChange({
-                ...simulation,
-                isPlaying: false,
-                time: simulation.time + 0.05,
-              })
-            }
-            aria-label="Avancer d'un pas"
-            className="hidden sm:inline-flex p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800"
-          >
-            <StepForward className="w-4 h-4" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSimulationChange({ ...simulation, time: 0 })}
-            aria-label="Réinitialiser le temps"
-            className="p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-
-          <div className="hidden xl:flex items-center gap-0.5 bg-slate-900 p-1 rounded-lg border border-slate-800 font-mono text-[11px]">
-            {speeds.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => onSimulationChange({ ...simulation, speed: s })}
-                className={`px-1.5 py-0.5 rounded font-semibold transition-colors ${
-                  simulation.speed === s
-                    ? 'bg-cyan-500 text-slate-950'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                {s}x
-              </button>
-            ))}
+          <div className="hidden sm:inline-flex">
+            <Button
+              icon={<StepForward className="w-4 h-4" />}
+              onClick={() =>
+                onSimulationChange({
+                  ...simulation,
+                  isPlaying: false,
+                  time: simulation.time + 0.05,
+                })
+              }
+              aria-label="Avancer d'un pas"
+              title="Pas suivant"
+            />
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              const idx = cameraModes.findIndex((c) => c.id === simulation.cameraMode);
-              const next = cameraModes[(idx + 1) % cameraModes.length];
-              onSimulationChange({
-                ...simulation,
-                cameraMode: next.id,
-              });
-            }}
-            aria-label="Changer d'angle de vue 3D"
-            className="p-2 sm:px-2.5 sm:py-1.5 flex items-center gap-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs font-medium text-slate-200 hover:bg-slate-800 whitespace-nowrap"
-          >
-            <Camera className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden lg:inline">
-              {cameraModes.find((c) => c.id === simulation.cameraMode)?.label ?? 'Vue 3D'}
-            </span>
-          </button>
+          <Button
+            icon={<RotateCcw className="w-4 h-4" />}
+            onClick={() => onSimulationChange({ ...simulation, time: 0 })}
+            aria-label="Réinitialiser le temps"
+            title="Réinitialiser t=0"
+          />
+
+          <div className="hidden md:inline-flex">
+            <Button
+              icon={<Bookmark className="w-4 h-4" />}
+              onClick={() => setShowSavedModal(true)}
+              aria-label="Présélections enregistrées"
+              title="Présélections"
+            />
+          </div>
+
+          <Menu
+            aria-label="Menu Infos, PDF, Partage et Export"
+            align="end"
+            icon={<MoreHorizontal className="w-4 h-4" />}
+            items={[
+              {
+                label: 'Infos académiques',
+                icon: <GraduationCap className="w-4 h-4" />,
+                onSelect: onOpenAcademicModal,
+              },
+              {
+                label: 'Exporter rapport PDF',
+                icon: <FileText className="w-4 h-4" />,
+                onSelect: handleExportPdf,
+              },
+              {
+                label: 'Partager le lien',
+                icon: <Share2 className="w-4 h-4" />,
+                onSelect: handleShareLink,
+              },
+              {
+                label: 'Exporter données CSV',
+                icon: <Download className="w-4 h-4" />,
+                onSelect: handleExportCsv,
+              },
+              'separator',
+              {
+                label: 'Présélections',
+                icon: <Bookmark className="w-4 h-4" />,
+                onSelect: () => setShowSavedModal(true),
+              },
+              {
+                label: `Vitesse ${simulation.speed}× → ${nextSpeed}×`,
+                icon: <Gauge className="w-4 h-4" />,
+                onSelect: () => onSimulationChange({ ...simulation, speed: nextSpeed }),
+              },
+            ]}
+          />
         </div>
       </header>
 
       {toastMessage && (
         <div
           role="status"
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-[#0c1425] border border-cyan-500/70 text-cyan-200 rounded-lg shadow-xl text-xs font-medium"
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bottom-sheet-glass rounded-xl text-xs font-medium text-white"
         >
-          <Check className="w-4 h-4 text-cyan-400" />
+          <Check className="w-4 h-4 text-[#0a84ff]" />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -617,12 +596,12 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Gestion des présélections"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"
         >
-          <div className="w-full max-w-md bg-[#0b1220] border border-slate-700 rounded-xl shadow-2xl p-5 space-y-4 text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="w-full max-w-md bottom-sheet-glass rounded-2xl p-5 space-y-4 text-slate-100">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-amber-400" />
+                <Bookmark className="w-5 h-5 text-[#0a84ff]" />
                 <h3 className="font-semibold text-sm text-slate-100">
                   Configurations enregistrées
                 </h3>
@@ -649,27 +628,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                   value={saveNameInput}
                   onChange={(e) => setSaveNameInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveState()}
-                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+                  className="flex-1 bg-black/30 border border-white/15 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
                 />
                 <button
                   type="button"
                   onClick={handleSaveState}
-                  className="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold rounded-lg text-xs"
+                  className="px-3.5 py-1.5 bg-[#0a84ff] hover:brightness-110 text-white font-semibold rounded-lg text-xs"
                 >
                   Enregistrer
                 </button>
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-2 border-t border-slate-800">
+            <div className="space-y-2.5 pt-2 border-t border-white/10">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
-                  <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
+                  <FolderOpen className="w-3.5 h-3.5 text-[#0a84ff]" />
                   Sauvegardes ({savedPresets.length})
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="cursor-pointer text-[11px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1">
-                    <Upload className="w-3 h-3 text-cyan-400" />
+                  <label className="cursor-pointer text-[11px] px-2.5 py-1 rounded bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 flex items-center gap-1">
+                    <Upload className="w-3 h-3 text-[#0a84ff]" />
                     Importer
                     <input
                       type="file"
@@ -681,16 +660,16 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                   <button
                     type="button"
                     onClick={handleExportJson}
-                    className="text-[11px] px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1"
+                    className="text-[11px] px-2.5 py-1 rounded bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 flex items-center gap-1"
                   >
-                    <Download className="w-3 h-3 text-indigo-400" />
+                    <Download className="w-3 h-3 text-[#0a84ff]" />
                     Exporter
                   </button>
                 </div>
               </div>
 
               {savedPresets.length === 0 ? (
-                <p className="text-xs text-slate-400 py-3 bg-slate-900/50 rounded-lg text-center border border-slate-800">
+                <p className="text-xs text-slate-400 py-3 bg-black/25 rounded-lg text-center border border-white/10">
                   Aucune configuration enregistrée.
                 </p>
               ) : (
@@ -698,7 +677,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                   {savedPresets.map((p) => (
                     <div
                       key={p.id}
-                      className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-xs"
+                      className="p-2.5 rounded-lg bg-black/25 border border-white/10 flex items-center justify-between text-xs"
                     >
                       <div className="flex-1 mr-2 min-w-0">
                         <div className="font-semibold text-slate-100 truncate">{p.name}</div>
@@ -714,7 +693,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                             setShowSavedModal(false);
                             showToast(`Configuration « ${p.name} » chargée.`);
                           }}
-                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 font-semibold text-xs border border-slate-700 transition-colors"
+                          className="px-2.5 py-1 rounded bg-[#0a84ff] hover:brightness-110 text-white font-semibold text-xs transition-all"
                         >
                           Charger
                         </button>
@@ -722,7 +701,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
                           type="button"
                           aria-label={`Supprimer ${p.name}`}
                           onClick={() => handleDeletePreset(p.id, p.name)}
-                          className="p-1.5 rounded bg-slate-800 hover:bg-rose-900/80 text-slate-400 hover:text-rose-300 border border-slate-700 transition-colors"
+                          className="p-1.5 rounded bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-200 border border-white/10 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -737,4 +716,5 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       )}
     </>
   );
-};
+});
+HeaderBar.displayName = 'HeaderBar';

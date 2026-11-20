@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import { TabBar } from 'glisse';
 import {
   AcademicProfile,
   MaterialPreset,
@@ -13,12 +14,26 @@ import {
   calculateProbePhaseDelta,
 } from './physics/waveEngine';
 import { HeaderBar } from './components/HeaderBar';
-import { ControlPanel } from './components/ControlPanel';
+import { ControlPanel, ChapterTab } from './components/ControlPanel';
 import { ThreeViewport } from './components/ThreeViewport';
-import { Oscilloscope } from './components/Oscilloscope';
 import { AcademicProfileModal } from './components/AcademicProfileModal';
 import { loadAcademicProfile, saveAcademicProfile } from './utils/academicProfile';
 import { deserializeStateFromUrl, SavedPreset } from './utils/exportUtils';
+import { Waves, Layers, Activity } from 'lucide-react';
+
+function detectBackdropRefractionSupport(): boolean {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const reducedTransparency = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
+  if (reducedMotion || reducedTransparency) return false;
+
+  const isChromium = /Chrom(?:e|ium)\//.test(navigator.userAgent);
+  const supportsBackdropBlur =
+    typeof CSS !== 'undefined' &&
+    (CSS.supports('backdrop-filter', 'blur(1px)') ||
+      CSS.supports('-webkit-backdrop-filter', 'blur(1px)'));
+  return isChromium && supportsBackdropBlur;
+}
 
 export const App: React.FC = () => {
   const [wall, setWall] = useState<WallGeometry>({
@@ -85,18 +100,39 @@ export const App: React.FC = () => {
     showKatexPanel: true,
   });
 
-  const [sidebarOpen, setSidebarOpen] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  const [activeChapter, setActiveChapter] = useState<ChapterTab>('ch1');
+  const [sheetExpanded, setSheetExpanded] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
   );
   const [academicProfile, setAcademicProfile] = useState<AcademicProfile>(() =>
     loadAcademicProfile()
   );
   const [academicModalOpen, setAcademicModalOpen] = useState(false);
 
+  // Feature-detect live refraction support and activate plain CSS blur fallback when unsupported
+  useEffect(() => {
+    const syncRefractionMode = () => {
+      const supported = detectBackdropRefractionSupport();
+      document.documentElement.dataset.refraction = supported ? 'live' : 'fallback';
+    };
+    syncRefractionMode();
+    const motionMq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    const transMq = window.matchMedia?.('(prefers-reduced-transparency: reduce)');
+    motionMq?.addEventListener?.('change', syncRefractionMode);
+    transMq?.addEventListener?.('change', syncRefractionMode);
+    return () => {
+      motionMq?.removeEventListener?.('change', syncRefractionMode);
+      transMq?.removeEventListener?.('change', syncRefractionMode);
+    };
+  }, []);
+
   const handleSaveAcademicProfile = useCallback((updated: AcademicProfile) => {
     setAcademicProfile(updated);
     saveAcademicProfile(updated);
   }, []);
+
+  const probeRef = useRef<DualProbeState>(probe);
+  probeRef.current = probe;
 
   const history1Ref = useRef<number[]>(new Array(80).fill(0));
   const history2Ref = useRef<number[]>(new Array(80).fill(0));
@@ -219,14 +255,14 @@ export const App: React.FC = () => {
     [wall]
   );
 
-  const resetOscilloscopeBuffers = () => {
+  const resetOscilloscopeBuffers = useCallback(() => {
     history1Ref.current = new Array(80).fill(0);
     history2Ref.current = new Array(80).fill(0);
     peakBuffer1Ref.current = [];
     peakBuffer2Ref.current = [];
-  };
+  }, []);
 
-  const handleApplyPreset = (
+  const handleApplyPreset = useCallback((
     _presetName: string,
     newWall: WallGeometry,
     newMaterial: MaterialPreset,
@@ -247,9 +283,9 @@ export const App: React.FC = () => {
       pkToPk1: 0,
       pkToPk2: 0,
     }));
-  };
+  }, [resetOscilloscopeBuffers]);
 
-  const handleLoadSavedPreset = (savedPreset: SavedPreset) => {
+  const handleLoadSavedPreset = useCallback((savedPreset: SavedPreset) => {
     resetOscilloscopeBuffers();
     const normalizedMode = savedPreset.wave.guidedMode === 'TM' ? 'TM' : 'TE';
     setWave({
@@ -272,7 +308,26 @@ export const App: React.FC = () => {
       pkToPk1: 0,
       pkToPk2: 0,
     }));
-  };
+  }, [resetOscilloscopeBuffers]);
+
+  const handleToggleSheet = useCallback(() => setSheetExpanded((prev) => !prev), []);
+  const handleOpenAcademicModal = useCallback(() => setAcademicModalOpen(true), []);
+  const handleCloseAcademicModal = useCallback(() => setAcademicModalOpen(false), []);
+  const handleIncidenceAngleChange = useCallback(
+    (incidenceAngleDeg: number) =>
+      setWave((prev) => ({
+        ...prev,
+        boundaryModel:
+          prev.boundaryModel === 'guide_ondes' ? 'dioptre_semi_infini' : prev.boundaryModel,
+        incidenceAngleDeg,
+      })),
+    []
+  );
+
+  const handleChapterChange = useCallback((val: string) => {
+    setActiveChapter(val as ChapterTab);
+    setSheetExpanded(true);
+  }, []);
 
   return (
     <div
@@ -281,79 +336,96 @@ export const App: React.FC = () => {
       data-tir={String(params.isTotalInternalReflection)}
       data-profile={wall.textureProfile}
       data-material={material.id}
-      className="flex flex-col w-screen h-screen bg-[#080c15] text-slate-100 overflow-hidden"
+      data-chapter={activeChapter}
+      className="relative w-screen h-screen overflow-hidden text-slate-100"
     >
+      {/* Couche 0 (Sibling) : Canvas Three.js plein écran enveloppé dans [data-glisse-backdrop] sur fond dégradé profond */}
+      <div
+        data-glisse-backdrop
+        data-testid="glisse-backdrop"
+        className="fixed inset-0 z-0 deep-scene-gradient"
+      >
+        <ThreeViewport
+          wave={wave}
+          wall={wall}
+          material={material}
+          probe={probe}
+          onProbeMove={handleProbeMove}
+          simulation={simulation}
+          onTimeUpdate={handleTimeUpdate}
+        />
+      </div>
+
+      {/* Couche 1 : Barre flottante supérieure (Glisse Button, SegmentedControl, Menu) */}
       <HeaderBar
         simulation={simulation}
         onSimulationChange={setSimulation}
         onApplyPreset={handleApplyPreset}
-        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+        sheetExpanded={sheetExpanded}
+        onToggleSheet={handleToggleSheet}
         wave={wave}
         wall={wall}
         material={material}
-        probe={probe}
+        probeRef={probeRef}
         onLoadSavedPreset={handleLoadSavedPreset}
         academicProfile={academicProfile}
-        onOpenAcademicModal={() => setAcademicModalOpen(true)}
+        onOpenAcademicModal={handleOpenAcademicModal}
       />
 
-      <main className="flex-1 flex flex-row relative overflow-hidden min-h-0">
-        {sidebarOpen && (
-          <div className="w-full sm:w-88 md:w-96 shrink-0 z-20 h-full absolute sm:relative">
-            <ControlPanel
-              wall={wall}
-              onWallChange={setWall}
-              material={material}
-              onMaterialChange={setMaterial}
-              wave={wave}
-              onWaveChange={setWave}
-              probe={probe}
-              onProbeChange={setProbe}
-              simulation={simulation}
-              onSimulationChange={setSimulation}
-              academicProfile={academicProfile}
-              onOpenAcademicModal={() => setAcademicModalOpen(true)}
-            />
-          </div>
-        )}
-
-        <div className="flex-1 h-full relative min-w-0">
-          <ThreeViewport
-            wave={wave}
-            wall={wall}
-            material={material}
-            probe={probe}
-            onProbeMove={handleProbeMove}
-            simulation={simulation}
-            onWaveChange={setWave}
-            onCameraModeChange={(cameraMode) =>
-              setSimulation((prev) => ({ ...prev, cameraMode }))
-            }
-            onTimeUpdate={handleTimeUpdate}
-          />
-        </div>
-      </main>
-
-      <Oscilloscope
-        probe={probe}
-        wave={wave}
+      {/* Couche 2 : Panneau de paramètres flottant en bottom sheet (verre CSS pur backdrop-filter) */}
+      <ControlPanel
+        activeChapter={activeChapter}
+        isExpanded={sheetExpanded}
+        onToggleExpand={handleToggleSheet}
         wall={wall}
+        onWallChange={setWall}
         material={material}
+        onMaterialChange={setMaterial}
+        wave={wave}
+        onWaveChange={setWave}
+        probe={probe}
         onProbePreset={handleProbePreset}
-        onIncidenceAngleChange={(incidenceAngleDeg) =>
-          setWave((prev) => ({
-            ...prev,
-            boundaryModel:
-              prev.boundaryModel === 'guide_ondes' ? 'dioptre_semi_infini' : prev.boundaryModel,
-            incidenceAngleDeg,
-          }))
-        }
+        onIncidenceAngleChange={handleIncidenceAngleChange}
+        simulation={simulation}
+        onSimulationChange={setSimulation}
+        academicProfile={academicProfile}
+        onOpenAcademicModal={handleOpenAcademicModal}
       />
+
+      {/* Couche 3 : TabBar fixe en bas pour Chapitres 1 / 2 / 3 */}
+      <nav
+        aria-label="Navigation des chapitres Mod-M115"
+        className="fixed bottom-2.5 left-1/2 -translate-x-1/2 z-30"
+      >
+        <TabBar
+          aria-label="Chapitres 1, 2 et 3"
+          value={activeChapter}
+          onValueChange={handleChapterChange}
+          style={{ '--lg-tab-width': '114px' } as React.CSSProperties}
+          items={[
+            {
+              value: 'ch1',
+              label: 'Ch. 1 · Dioptre',
+              icon: <Waves className="w-5 h-5" />,
+            },
+            {
+              value: 'ch2',
+              label: 'Ch. 2 · Pertes',
+              icon: <Layers className="w-5 h-5" />,
+            },
+            {
+              value: 'ch3',
+              label: 'Ch. 3 · Scope',
+              icon: <Activity className="w-5 h-5" />,
+            },
+          ]}
+        />
+      </nav>
 
       <AcademicProfileModal
         isOpen={academicModalOpen}
         profile={academicProfile}
-        onClose={() => setAcademicModalOpen(false)}
+        onClose={handleCloseAcademicModal}
         onSave={handleSaveAcademicProfile}
       />
     </div>
