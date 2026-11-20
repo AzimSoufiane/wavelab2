@@ -581,6 +581,35 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
         </div>
       </header>
 
+      {/* Vitesse de simulation : contrôle Glisse glissable (SegmentedControl) */}
+      <div
+        role="group"
+        aria-label="Contrôle de vitesse de simulation"
+        className="fixed top-[60px] left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-3 z-20 pointer-events-auto flex items-center gap-1.5 select-none"
+      >
+        <div
+          className="h-8 px-2.5 rounded-full bottom-sheet-glass flex items-center gap-1.5 text-[11px] font-medium text-slate-200 whitespace-nowrap"
+          title="Glisser sur la barre pour ajuster la vitesse"
+        >
+          <Gauge className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
+          <span className="hidden sm:inline">Vitesse</span>
+        </div>
+
+        <SegmentedControl
+          aria-label="Vitesse de simulation"
+          title="Glisser ou cliquer pour changer la vitesse de simulation"
+          value={String(simulation.speed)}
+          onValueChange={(val) =>
+            onSimulationChange({ ...simulation, speed: parseFloat(val) })
+          }
+          style={{ '--lg-tab-width': '48px' } as React.CSSProperties}
+          items={speeds.map((spd) => ({
+            value: String(spd),
+            label: `${spd}×`,
+          }))}
+        />
+      </div>
+
       {toastMessage && (
         <div
           role="status"
