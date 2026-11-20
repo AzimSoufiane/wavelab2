@@ -1,6 +1,6 @@
 # WaveLab 3D — Mod-M115
 
-Simulateur 3D interactif de propagation électromagnétique réalisé pour le module **M115** de l'**ENSA Tanger**. L'application permet de visualiser et de mesurer, en temps réel, les phénomènes d'ondes vues au cours du semestre : dioptres, incidence oblique TE/TM, milieux à pertes, guides d'ondes et ondes stationnaires (TOS/ROS).
+Simulateur 3D interactif de propagation électromagnétique réalisé pour le module **M115** de l'**ENSA Tanger**. L'application permet de visualiser et de mesurer, en temps réel, les phénomènes d'ondes vus au cours du semestre : dioptres, incidence oblique TE/TM, milieux à pertes, guides d'ondes et ondes stationnaires (TOS/ROS).
 
 L'interface combine une scène **Three.js** plein écran, un panneau de paramètres flottant, un oscilloscope deux voies et un tableau d'équations rendues avec **KaTeX**.
 
@@ -47,7 +47,7 @@ L'interface combine une scène **Three.js** plein écran, un panneau de paramèt
 Prérequis : **Bun** (le dépôt contient un `bun.lock`) ou Node.js avec npm.
 
 ```bash
-#克隆 du dépôt
+# Clonage du dépôt
 git clone https://github.com/AzimSoufiane/wavelab2.git
 cd wavelab2
 
