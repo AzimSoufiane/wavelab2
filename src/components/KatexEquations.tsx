@@ -150,15 +150,15 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
         type="button"
         onClick={() => setCollapsed(!collapsed)}
         aria-expanded={!collapsed}
-        className="w-full flex items-center justify-between py-2 hover:bg-white/[0.04] rounded-lg px-1.5 -mx-1.5 transition-colors text-left"
+        className="w-full min-h-[38px] flex items-center justify-between py-1.5 hover:bg-[var(--surface-inset-hover)] rounded-lg px-1.5 -mx-1.5 focus-ring transition-colors duration-150 text-left"
       >
         <div className="flex items-center gap-2">
-          <Calculator className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
-          <span className="text-xs font-semibold text-slate-100">
+          <Calculator className="w-3.5 h-3.5 text-[var(--app-accent)] shrink-0" />
+          <span className="text-xs font-semibold text-[var(--text-primary)]">
             Modèle analytique Mod-M115
           </span>
         </div>
-        <div className="flex items-center gap-1.5 text-slate-400">
+        <div className="flex items-center gap-1.5 text-[var(--text-muted)]">
           <span className="text-[11px] font-mono">
             {collapsed ? 'Développer' : 'Réduire'}
           </span>
@@ -167,17 +167,17 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
       </button>
 
       {!collapsed && (
-        <div className="pt-1.5 space-y-2 text-xs text-slate-200">
+        <div className="pt-2 space-y-2.5 text-xs text-[var(--text-secondary)]">
           {wave.boundaryModel === 'guide_ondes' && params.isCutoff && (
             <div
               data-testid="cutoff-banner"
-              className="flex items-start gap-2 p-2 rounded-lg bg-rose-500/15 border border-rose-400/35 text-rose-100 text-[11px]"
+              className="flex items-start gap-2 px-2.5 py-2 rounded-lg bg-[var(--status-critical-bg)] border border-[var(--status-critical-border)] text-[var(--text-primary)] text-[11px]"
             >
-              <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-[var(--status-critical)] shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold">Mode évanescent (f &lt; fc) : </span>
-                <span className="font-mono text-white">{wave.frequency.toFixed(2)} GHz</span> &lt;{' '}
-                <span className="font-mono text-white">
+                <span className="font-semibold text-[var(--status-critical)]">Mode évanescent (f &lt; fc) : </span>
+                <span className="font-mono text-[var(--text-primary)]">{wave.frequency.toFixed(2)} GHz</span> &lt;{' '}
+                <span className="font-mono text-[var(--text-primary)]">
                   {(params.fc / 1e9).toFixed(3)} GHz
                 </span>{' '}
                 pour {wave.guidedMode}_{wave.modeM}
@@ -189,12 +189,12 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
           {wave.boundaryModel === 'guide_ondes' && !params.isCutoff && (
             <div
               data-testid="propagating-banner"
-              className="flex items-center gap-2 p-2 rounded-lg bg-[#0a84ff]/15 border border-[#0a84ff]/40 text-slate-100 text-[11px]"
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[var(--app-accent-soft)] border border-[var(--app-accent-border)] text-[var(--text-primary)] text-[11px]"
             >
-              <CheckCircle2 className="w-4 h-4 text-[#0a84ff] shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[var(--app-accent)] shrink-0" />
               <div>
                 <span className="font-semibold">Mode guidé propagatif (f &gt; fc) : </span>
-                <span className="font-mono text-white">{(params.fc / 1e9).toFixed(3)} GHz</span>
+                <span className="font-mono text-[var(--text-primary)]">{(params.fc / 1e9).toFixed(3)} GHz</span>
               </div>
             </div>
           )}
@@ -202,22 +202,23 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
           {wave.boundaryModel !== 'guide_ondes' && params.isTotalInternalReflection && (
             <div
               data-testid="tir-banner"
-              className="flex items-center gap-2 p-2 rounded-lg bg-rose-500/15 border border-rose-400/35 text-rose-100 text-[11px]"
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-[var(--status-critical-bg)] border border-[var(--status-critical-border)] text-[var(--text-primary)] text-[11px]"
             >
-              <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-[var(--status-critical)] shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold">Réflexion totale (θi &gt; θl) : </span>
+                <span className="font-semibold text-[var(--status-critical)]">Réflexion totale (θi &gt; θl) : </span>
                 |Γ| = 1, onde évanescente dans le milieu 2 (T&apos; = 0).
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-2 font-mono">
+          {/* Hairline-divided analytical monograph rows (no nested box clutter) */}
+          <div className="divide-y divide-[var(--hairline-subtle)] font-mono">
             {showCh1 && (
-              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
-                <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between gap-2">
+              <div className="py-2 first:pt-0 last:pb-0 space-y-1">
+                <div className="text-[11px] text-[var(--app-accent)] font-semibold flex items-center justify-between gap-2">
                   <span className="truncate">Ch. 1 — Dioptre &amp; Descartes</span>
-                  <span className="text-slate-400 font-normal shrink-0 tabular-nums">
+                  <span className="text-[var(--text-muted)] font-normal shrink-0 tabular-nums">
                     {material.isPEC
                       ? `n₁=${params.n1.toFixed(2)} → PEC`
                       : material.isConductor
@@ -226,15 +227,15 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
                   </span>
                 </div>
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-100"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-primary)]"
                   dangerouslySetInnerHTML={computed.texCh1V}
                 />
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-200"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-secondary)]"
                   dangerouslySetInnerHTML={computed.texCh1G}
                 />
                 {params.brewsterDeg !== null && (
-                  <div className="text-[10px] text-slate-400 pt-0.5 flex flex-wrap gap-x-3 tabular-nums">
+                  <div className="text-[10.5px] text-[var(--text-muted)] pt-0.5 flex flex-wrap gap-x-3 tabular-nums">
                     <span>θB (TM) = {params.brewsterDeg.toFixed(1)}°</span>
                     {params.thetaLimitDeg !== null && (
                       <span>θl (TIR) = {params.thetaLimitDeg.toFixed(1)}°</span>
@@ -245,45 +246,45 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
             )}
 
             {showCh2 && (
-              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
-                <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between">
+              <div className="py-2 first:pt-0 last:pb-0 space-y-1">
+                <div className="text-[11px] text-[var(--app-accent)] font-semibold flex items-center justify-between gap-2">
                   <span>Ch. 2 — Milieu &amp; Pertes</span>
-                  <span className="text-slate-400 font-normal">{regimeLabel}</span>
+                  <span className="text-[var(--text-muted)] font-normal">{regimeLabel}</span>
                 </div>
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-100"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-primary)]"
                   dangerouslySetInnerHTML={computed.texCh2Eta}
                 />
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-300"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-secondary)]"
                   dangerouslySetInnerHTML={computed.texCh2Alpha}
                 />
               </div>
             )}
 
             {showCh3 && (
-              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
-                <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between">
+              <div className="py-2 first:pt-0 last:pb-0 space-y-1">
+                <div className="text-[11px] text-[var(--app-accent)] font-semibold flex items-center justify-between gap-2">
                   <span>Ch. 3 — Onde Stationnaire</span>
-                  <span className="text-slate-400 font-normal tabular-nums">|x₂ - x₁| = {deltaX.toFixed(2)} m</span>
+                  <span className="text-[var(--text-muted)] font-normal tabular-nums">|x₂ - x₁| = {deltaX.toFixed(2)} m</span>
                 </div>
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-100"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-primary)]"
                   dangerouslySetInnerHTML={computed.texCh3Tos}
                 />
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-300"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-secondary)]"
                   dangerouslySetInnerHTML={computed.texCh3Min}
                 />
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-300"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-secondary)]"
                   dangerouslySetInnerHTML={computed.texCh3Phi}
                 />
 
                 <button
                   type="button"
                   onClick={() => setShowInverseTp((v) => !v)}
-                  className="mt-1 text-[11px] text-[#0a84ff] hover:underline underline-offset-2 text-left"
+                  className="mt-1 inline-flex items-center py-0.5 text-[11px] font-sans font-medium text-[var(--app-accent)] hover:underline underline-offset-2 focus-ring rounded text-left"
                 >
                   {showInverseTp ? 'Masquer TP §3.4.2 (Identifier η₂)' : 'TP §3.4.2 : Identifier η₂ inconnu'}
                 </button>
@@ -291,7 +292,7 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
                 {showInverseTp && (
                   <div
                     data-testid="inverse-tp-panel"
-                    className="mt-1.5 pt-2 border-t border-white/10 text-[11px] space-y-1 text-slate-200 tabular-nums"
+                    className="mt-1.5 pt-2 border-t border-[var(--hairline-subtle)] text-[11px] space-y-1 text-[var(--text-secondary)] tabular-nums"
                   >
                     <div>
                       1) ROS = {Number.isFinite(rec.ros) ? rec.ros.toFixed(2) : '∞'} → |Γ| ={' '}
@@ -300,7 +301,7 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
                     <div>
                       2) φ = 4π·d₁/λ₁ − π = {((rec.phiRad * 180) / Math.PI).toFixed(1)}°
                     </div>
-                    <div className="text-[#0a84ff] font-semibold">
+                    <div className="text-[var(--app-accent)] font-semibold">
                       3) η₂ = η₁(1+Γ)/(1−Γ) ≈{' '}
                       {Number.isFinite(rec.eta2Abs) ? `${rec.eta2Abs.toFixed(1)} Ω` : '∞'} ∠{' '}
                       {rec.eta2PhaseDeg.toFixed(1)}°
@@ -311,18 +312,18 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
             )}
 
             {wave.boundaryModel === 'guide_ondes' && (
-              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
-                <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between">
+              <div className="py-2 first:pt-0 last:pb-0 space-y-1">
+                <div className="text-[11px] text-[var(--app-accent)] font-semibold flex items-center justify-between gap-2">
                   <span>
                     Guide {wave.guidedMode}_{wave.modeM}
                     {wave.modeN}
                   </span>
-                  <span className="text-slate-400 font-normal tabular-nums">
+                  <span className="text-[var(--text-muted)] font-normal tabular-nums">
                     a={wave.guideA.toFixed(3)}m · b={wave.guideB.toFixed(3)}m
                   </span>
                 </div>
                 <div
-                  className="overflow-x-auto text-[11.5px] py-0.5 text-slate-100"
+                  className="overflow-x-auto text-[11.5px] py-0.5 text-[var(--text-primary)]"
                   dangerouslySetInnerHTML={computed.texGuided}
                 />
               </div>

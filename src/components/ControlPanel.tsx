@@ -134,7 +134,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
     dragSessionRef.current = null;
     setDragHeightPx(null);
 
-    // Tap (minimal drag) cycles peek -> half -> full -> peek
     if (Math.abs(dy) < 6) {
       const next: SheetDetent =
         detent === 'peek' ? 'half' : detent === 'half' ? 'full' : 'peek';
@@ -142,7 +141,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
       return;
     }
 
-    // Flick bias or midpoint snapping across 3 detents
     if (dy > 44) {
       onDetentChange(detent === 'peek' ? 'half' : 'full');
     } else if (dy < -44) {
@@ -196,13 +194,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
 
   const renderVisualSwitches = () => (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-100 pb-1">
-        <Eye className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)] pb-1">
+        <Eye className="w-3.5 h-3.5 text-[var(--app-accent)] shrink-0" />
         <span>Couches d&apos;affichage 3D</span>
       </div>
-      <div className="divide-y divide-white/[0.06] text-xs">
-        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-white/[0.03] px-1 -mx-1 rounded">
-          <span className="text-slate-200">Nappe E(x,z)</span>
+      <div className="divide-y divide-[var(--hairline-subtle)] text-xs">
+        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-[var(--surface-inset-hover)] px-1.5 -mx-1.5 rounded-lg transition-colors duration-150">
+          <span className="text-[var(--text-secondary)]">Nappe E(x,z)</span>
           <Switch
             aria-label="Afficher la nappe E(x,z)"
             checked={simulation.showSurface}
@@ -212,8 +210,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           />
         </label>
 
-        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-white/[0.03] px-1 -mx-1 rounded">
-          <span className="text-slate-200">Vecteurs &lt;S&gt;</span>
+        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-[var(--surface-inset-hover)] px-1.5 -mx-1.5 rounded-lg transition-colors duration-150">
+          <span className="text-[var(--text-secondary)]">Vecteurs &lt;S&gt;</span>
           <Switch
             aria-label="Afficher les vecteurs de Poynting <S>"
             checked={simulation.showVectors}
@@ -223,8 +221,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           />
         </label>
 
-        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-white/[0.03] px-1 -mx-1 rounded">
-          <span className="text-slate-200">Rayons θi / θt</span>
+        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-[var(--surface-inset-hover)] px-1.5 -mx-1.5 rounded-lg transition-colors duration-150">
+          <span className="text-[var(--text-secondary)]">Rayons θi / θt</span>
           <Switch
             aria-label="Afficher les rayons θi et θt"
             checked={simulation.showRays}
@@ -234,8 +232,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           />
         </label>
 
-        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-white/[0.03] px-1 -mx-1 rounded">
-          <span className="text-slate-200">Enveloppe |E|</span>
+        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-[var(--surface-inset-hover)] px-1.5 -mx-1.5 rounded-lg transition-colors duration-150">
+          <span className="text-[var(--text-secondary)]">Enveloppe |E|</span>
           <Switch
             aria-label="Afficher l'enveloppe stationnaire |E|"
             checked={simulation.showEnvelope}
@@ -245,8 +243,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           />
         </label>
 
-        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-white/[0.03] px-1 -mx-1 rounded">
-          <span className="text-slate-200">Trièdre (E, H, k) sur Sonde 1</span>
+        <label className="flex items-center justify-between gap-2 min-h-[38px] cursor-pointer hover:bg-[var(--surface-inset-hover)] px-1.5 -mx-1.5 rounded-lg transition-colors duration-150">
+          <span className="text-[var(--text-secondary)]">Trièdre (E, H, k) sur Sonde 1</span>
           <Switch
             aria-label="Afficher le trièdre (E, H, k) sur Sonde 1"
             checked={simulation.showTrihedron}
@@ -261,19 +259,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
 
   const renderAcademicCard = () => (
     <section aria-label="Profil académique" className="pt-3 space-y-2">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0a84ff]">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--app-accent)]">
         <GraduationCap className="w-3.5 h-3.5 shrink-0" />
         <span>Profil académique · {academicProfile.institution}</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px]">
         <div className="flex items-start gap-2 min-w-0">
-          <User className="w-3.5 h-3.5 text-[#0a84ff] mt-0.5 shrink-0" />
+          <User className="w-3.5 h-3.5 text-[var(--app-accent)] mt-0.5 shrink-0" />
           <div className="min-w-0 flex-1">
-            <div className="text-slate-100 font-semibold truncate">
+            <div className="text-[var(--text-primary)] font-semibold truncate">
               {academicProfile.studentName || 'Étudiant non renseigné'}
             </div>
-            <div className="text-slate-400 truncate text-[10px]">
+            <div className="text-[var(--text-muted)] truncate text-[10.5px]">
               {[academicProfile.studentClass, academicProfile.studentId]
                 .filter(Boolean)
                 .join(' · ') || 'Mod-M115'}
@@ -282,14 +280,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
         </div>
 
         <div className="flex items-start gap-2 min-w-0">
-          <GraduationCap className="w-3.5 h-3.5 text-[#0a84ff] mt-0.5 shrink-0" />
+          <GraduationCap className="w-3.5 h-3.5 text-[var(--app-accent)] mt-0.5 shrink-0" />
           <div className="min-w-0 flex-1">
             {academicProfile.teacherName ? (
               <>
-                <div className="text-slate-100 font-semibold truncate">
+                <div className="text-[var(--text-primary)] font-semibold truncate">
                   {academicProfile.teacherName}
                 </div>
-                <div className="text-slate-400 truncate text-[10px]">
+                <div className="text-[var(--text-muted)] truncate text-[10.5px]">
                   {[academicProfile.teacherTitle, academicProfile.teacherDepartment]
                     .filter(Boolean)
                     .join(' · ')}
@@ -299,7 +297,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
               <button
                 type="button"
                 onClick={onOpenAcademicModal}
-                className="text-left text-[#0a84ff] hover:underline underline-offset-2"
+                className="text-left text-[var(--app-accent)] hover:underline underline-offset-2 focus-ring rounded"
               >
                 Enseignant(e) — ajouter
               </button>
@@ -321,7 +319,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
     <aside
       aria-label="Panneau de paramètres bottom sheet"
       data-detent={detent}
-      className="fixed left-1/2 -translate-x-1/2 bottom-[74px] z-20 w-[calc(100vw-16px)] sm:w-[calc(100vw-32px)] max-w-[1040px] rounded-2xl bottom-sheet-glass text-slate-100 select-none overflow-hidden"
+      className="fixed left-1/2 -translate-x-1/2 bottom-[74px] z-20 w-[calc(100vw-16px)] sm:w-[calc(100vw-32px)] max-w-[1040px] rounded-2xl bottom-sheet-glass text-[var(--text-primary)] select-none overflow-hidden"
     >
       {/* Poignée tactile 3-états (peek / half / full) */}
       <div
@@ -338,29 +336,29 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
         onPointerCancel={handleDragPointerUp}
         onKeyDown={handleDragKeyDown}
         title="Glisser pour ajuster (Réduit / Demi / Complet)"
-        className="group pt-2 pb-1 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none focus:outline-none focus-visible:bg-white/[0.06]"
+        className="group pt-2.5 pb-1.5 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none focus:outline-none focus-visible:bg-[var(--surface-inset-hover)]"
       >
-        <span className="w-10 h-1 rounded-full bg-white/30 group-hover:bg-white/55 transition-colors" />
+        <span className="w-11 h-1 rounded-full bg-white/30 group-hover:bg-white/55 transition-colors duration-150" />
       </div>
 
       {/* En-tête de la bottom sheet (toujours visible) */}
-      <div className="px-4 sm:px-5 pb-2.5 flex items-center justify-between gap-2 border-b border-white/[0.09]">
+      <div className="px-4 sm:px-5 pb-2.5 flex items-center justify-between gap-2.5 border-b border-[var(--hairline-subtle)]">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-[#0a84ff]/20 border border-[#0a84ff]/40 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-[var(--app-accent-soft)] border border-[var(--app-accent-border)] flex items-center justify-center shrink-0">
             {activeChapter === 'ch1' ? (
-              <Waves className="w-3.5 h-3.5 text-[#0a84ff]" />
+              <Waves className="w-4 h-4 text-[var(--app-accent)]" />
             ) : activeChapter === 'ch2' ? (
-              <Box className="w-3.5 h-3.5 text-[#0a84ff]" />
+              <Box className="w-4 h-4 text-[var(--app-accent)]" />
             ) : (
-              <Activity className="w-3.5 h-3.5 text-[#0a84ff]" />
+              <Activity className="w-4 h-4 text-[var(--app-accent)]" />
             )}
           </div>
           <div className="min-w-0">
-            <div className="text-xs font-semibold text-white truncate">
+            <div className="text-xs font-semibold text-[var(--text-primary)] truncate">
               {chapterMeta[activeChapter].title}
             </div>
-            <div className="text-[10.5px] font-mono tabular-nums text-slate-300/85 truncate flex items-center gap-2">
-              <span>{wave.guidedMode}</span>
+            <div className="text-[10.5px] font-mono tabular-nums text-[var(--text-muted)] truncate flex items-center gap-2">
+              <span className="text-[var(--text-secondary)] font-medium">{wave.guidedMode}</span>
               <span>· f={wave.frequency.toFixed(2)} GHz</span>
               {wave.boundaryModel !== 'guide_ondes' ? (
                 <span>· θi={Math.round(wave.incidenceAngleDeg)}°</span>
@@ -376,7 +374,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="hidden lg:inline text-[11px] text-slate-300/80 font-medium truncate max-w-[230px] mr-1">
+          <span className="hidden lg:inline text-[11px] text-[var(--text-muted)] font-medium truncate max-w-[230px] mr-1">
             {academicProfile.studentName} · {academicProfile.teacherName}
           </span>
           {detent !== 'peek' && (
@@ -416,10 +414,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           style={dragHeightPx !== null ? { maxHeight: `${dragHeightPx}px` } : undefined}
           className={`${
             dragHeightPx === null ? `sheet-body-transition ${detentHeightClass}` : ''
-          } overflow-y-auto px-4 sm:px-5 py-3.5 space-y-3.5`}
+          } overflow-y-auto px-4 sm:px-5 py-3.5 space-y-4`}
         >
           {/* Contrôles segmentés principaux : TE/TM + Config propagation + Vue mobile */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/[0.09]">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--hairline-subtle)]">
             <div className="flex flex-wrap items-center gap-2">
               <SegmentedControl
                 aria-label="Mode de polarisation TE ou TM"
@@ -452,14 +450,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
               />
             </div>
 
-            <div className="flex lg:hidden items-center max-w-full overflow-x-auto">
+            <div className="flex lg:hidden items-center max-w-full">
               <SegmentedControl
                 aria-label="Modes de vue 3D (mobile)"
+                className="camera-segmented"
                 value={simulation.cameraMode}
                 onValueChange={(val) =>
                   onSimulationChange({ ...simulation, cameraMode: val as CameraMode })
                 }
-                style={{ '--lg-tab-width': '58px' } as React.CSSProperties}
                 items={[
                   { value: 'perspective', label: '3D' },
                   { value: 'top', label: 'Dessus' },
@@ -474,15 +472,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           {/* CHAPITRE 1 : Dioptre, Incidence Oblique, Fréquence, Amplitude & Descartes */}
           {activeChapter === 'ch1' && (
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-              <div className="md:col-span-7 divide-y divide-white/[0.09]">
+              <div className="md:col-span-7 divide-y divide-[var(--hairline-subtle)]">
                 {wave.boundaryModel !== 'guide_ondes' ? (
                   <div className="pb-3.5 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
-                        <Radio className="w-3.5 h-3.5 text-[#0a84ff]" />
+                      <span className="text-xs font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
+                        <Radio className="w-3.5 h-3.5 text-[var(--app-accent)]" />
                         <span>
                           Milieu 1 incident (n₁ ={' '}
-                          <span className="font-mono tabular-nums">
+                          <span className="font-mono tabular-nums text-[var(--text-primary)] font-semibold">
                             {Math.sqrt(wave.medium1EpsilonR).toFixed(2)}
                           </span>
                           )
@@ -502,22 +500,22 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                       />
                     </div>
 
-                    <div className="space-y-1.5 pt-2 border-t border-white/[0.06]">
+                    <div className="space-y-1.5 pt-2.5 border-t border-[var(--hairline-subtle)]">
                       <div className="flex justify-between items-center text-xs gap-2">
-                        <label htmlFor="incidence-angle" className="text-slate-200 font-medium flex items-center">
+                        <label htmlFor="incidence-angle" className="text-[var(--text-secondary)] font-medium flex items-center">
                           Angle d&apos;incidence (θi)
                           <ParamTooltip
                             title="Lois de Descartes & Brewster"
                             explanation="Mesuré par rapport à la normale au dioptre (0° à 85°). En mode TM, Γ s'annule à l'angle de Brewster θB = arctan(n₂/n₁). Si n₁ > n₂, réflexion totale pour θi > θl."
-                            formula="n_1\sin\theta_i = n_2\sin\theta_t"
+                            formula="n₁ · sin θi = n₂ · sin θt"
                           />
                         </label>
                         <div className="flex items-center gap-1.5 font-mono tabular-nums">
-                          <span className="text-[#0a84ff] font-semibold">
+                          <span className="text-[var(--app-accent)] font-semibold">
                             {Math.round(wave.incidenceAngleDeg)}°
                           </span>
-                          <span className="text-slate-500">·</span>
-                          <span className={params.isTotalInternalReflection ? 'text-rose-300 font-semibold' : 'text-slate-300'}>
+                          <span className="text-[var(--text-muted)]">·</span>
+                          <span className={params.isTotalInternalReflection ? 'text-[var(--status-critical)] font-semibold' : 'text-[var(--text-secondary)]'}>
                             {material.isPEC
                               ? 'PEC : θt = —'
                               : params.isTotalInternalReflection
@@ -542,23 +540,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                         <div className="flex items-center gap-1.5">
                           {[0, 30, 45, 60, 75].map((deg) => (
-                            <button
+                            <Button
                               key={deg}
-                              type="button"
+                              variant={Math.round(wave.incidenceAngleDeg) === deg ? 'filled' : 'glass'}
                               onClick={() => onWaveChange({ ...wave, incidenceAngleDeg: deg })}
-                              className={`min-h-[30px] px-2.5 py-0.5 rounded-lg text-[11px] font-mono tabular-nums border transition-colors ${
-                                Math.round(wave.incidenceAngleDeg) === deg
-                                  ? 'bg-[#0a84ff] border-[#0a84ff] text-white font-semibold'
-                                  : 'bg-white/[0.05] border-white/10 text-slate-300 hover:text-white'
-                              }`}
+                              className="lg-btn-compact font-mono tabular-nums"
                             >
                               {deg}°
-                            </button>
+                            </Button>
                           ))}
                         </div>
 
                         {params.brewsterDeg !== null && (
-                          <div className="flex items-center gap-2.5 text-[11px] tabular-nums">
+                          <div className="flex items-center gap-2.5 text-[11px] font-mono tabular-nums">
                             <button
                               type="button"
                               onClick={() =>
@@ -568,7 +562,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                                   incidenceAngleDeg: Math.round(params.brewsterDeg!),
                                 })
                               }
-                              className="text-[#0a84ff] hover:underline underline-offset-2 font-medium"
+                              className="text-[var(--app-accent)] hover:underline underline-offset-2 font-medium focus-ring rounded"
                             >
                               θB = {params.brewsterDeg.toFixed(1)}°
                             </button>
@@ -581,7 +575,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                                     incidenceAngleDeg: Math.min(85, Math.ceil(params.thetaLimitDeg! + 5)),
                                   })
                                 }
-                                className="text-rose-300 hover:underline underline-offset-2 font-medium"
+                                className="text-[var(--status-critical)] hover:underline underline-offset-2 font-medium focus-ring rounded"
                               >
                                 TIR (&gt; {params.thetaLimitDeg.toFixed(1)}°)
                               </button>
@@ -591,8 +585,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-white/[0.06]">
-                      <span className="text-[11px] text-slate-300">Type d&apos;onde source</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-[var(--hairline-subtle)]">
+                      <span className="text-[11px] text-[var(--text-secondary)]">Type d&apos;onde source</span>
                       <SegmentedControl
                         aria-label="Type d'onde source"
                         value={wave.polarization}
@@ -614,17 +608,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                 ) : (
                   <div className="pb-3.5 space-y-3">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-200 font-medium">Fréquence de coupure fc</span>
-                      <span className={`font-mono tabular-nums font-semibold ${params.isCutoff ? 'text-rose-300' : 'text-[#0a84ff]'}`}>
+                      <span className="text-[var(--text-secondary)] font-medium">Fréquence de coupure fc</span>
+                      <span className={`font-mono tabular-nums font-semibold ${params.isCutoff ? 'text-[var(--status-critical)]' : 'text-[var(--app-accent)]'}`}>
                         {fcGHz.toFixed(3)} GHz ({params.isCutoff ? 'Coupure' : 'Propagatif'})
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <div className="flex justify-between text-[11px] text-slate-200">
+                        <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                           <label htmlFor="guide-a">Largeur a</label>
-                          <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                          <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                             {(wave.guideA * 100).toFixed(1)} cm
                           </span>
                         </div>
@@ -639,9 +633,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                         />
                       </div>
                       <div>
-                        <div className="flex justify-between text-[11px] text-slate-200">
+                        <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                           <label htmlFor="guide-b">Hauteur b</label>
-                          <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                          <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                             {(wave.guideB * 100).toFixed(1)} cm
                           </span>
                         </div>
@@ -658,37 +652,43 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs pt-1">
-                      <label className="flex items-center justify-between bg-black/25 px-3 py-1.5 rounded-lg border border-white/10">
-                        <span className="text-slate-200">Indice m</span>
-                        <select
-                          value={wave.modeM}
-                          onChange={(e) =>
-                            onWaveChange({ ...wave, modeM: parseInt(e.target.value, 10) })
-                          }
-                          className="bg-transparent font-mono text-[#0a84ff] font-semibold focus:outline-none"
-                        >
-                          {[0, 1, 2, 3].map((v) => (
-                            <option key={v} value={v} className="bg-[#0b1326] text-white">
-                              {v}
-                            </option>
-                          ))}
-                        </select>
+                      <label className="relative flex items-center justify-between glass-select-pill px-3 py-1.5 rounded-lg">
+                        <span className="text-[var(--text-secondary)]">Indice m</span>
+                        <div className="relative flex items-center">
+                          <select
+                            value={wave.modeM}
+                            onChange={(e) =>
+                              onWaveChange({ ...wave, modeM: parseInt(e.target.value, 10) })
+                            }
+                            className="appearance-none pr-4 bg-transparent font-mono text-[var(--app-accent)] font-semibold focus:outline-none cursor-pointer"
+                          >
+                            {[0, 1, 2, 3].map((v) => (
+                              <option key={v} value={v} className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                                {v}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-[var(--text-muted)] pointer-events-none absolute right-0" aria-hidden="true" />
+                        </div>
                       </label>
-                      <label className="flex items-center justify-between bg-black/25 px-3 py-1.5 rounded-lg border border-white/10">
-                        <span className="text-slate-200">Indice n</span>
-                        <select
-                          value={wave.modeN}
-                          onChange={(e) =>
-                            onWaveChange({ ...wave, modeN: parseInt(e.target.value, 10) })
-                          }
-                          className="bg-transparent font-mono text-[#0a84ff] font-semibold focus:outline-none"
-                        >
-                          {[0, 1, 2].map((v) => (
-                            <option key={v} value={v} className="bg-[#0b1326] text-white">
-                              {v}
-                            </option>
-                          ))}
-                        </select>
+                      <label className="relative flex items-center justify-between glass-select-pill px-3 py-1.5 rounded-lg">
+                        <span className="text-[var(--text-secondary)]">Indice n</span>
+                        <div className="relative flex items-center">
+                          <select
+                            value={wave.modeN}
+                            onChange={(e) =>
+                              onWaveChange({ ...wave, modeN: parseInt(e.target.value, 10) })
+                            }
+                            className="appearance-none pr-4 bg-transparent font-mono text-[var(--app-accent)] font-semibold focus:outline-none cursor-pointer"
+                          >
+                            {[0, 1, 2].map((v) => (
+                              <option key={v} value={v} className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                                {v}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="w-3 h-3 text-[var(--text-muted)] pointer-events-none absolute right-0" aria-hidden="true" />
+                        </div>
                       </label>
                     </div>
                   </div>
@@ -698,10 +698,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                 <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <div className="flex justify-between text-xs">
-                      <label htmlFor="wave-freq" className="text-slate-200 font-medium">
+                      <label htmlFor="wave-freq" className="text-[var(--text-secondary)] font-medium">
                         Fréquence (f)
                       </label>
-                      <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                      <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                         {wave.frequency.toFixed(2)} GHz
                       </span>
                     </div>
@@ -718,10 +718,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
 
                   <div>
                     <div className="flex justify-between text-xs">
-                      <label htmlFor="wave-amp" className="text-slate-200 font-medium">
+                      <label htmlFor="wave-amp" className="text-[var(--text-secondary)] font-medium">
                         Amplitude E₀
                       </label>
-                      <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                      <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                         {wave.amplitude.toFixed(2)} V/m
                       </span>
                     </div>
@@ -738,7 +738,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                 </div>
               </div>
 
-              <div className="md:col-span-5 md:border-l md:border-white/[0.09] md:pl-5 divide-y divide-white/[0.09] space-y-3">
+              <div className="md:col-span-5 md:border-l md:border-[var(--hairline-subtle)] md:pl-5 divide-y divide-[var(--hairline-subtle)] space-y-3">
                 {renderVisualSwitches()}
                 <div className="pt-3">
                   <KatexEquations
@@ -759,73 +759,79 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
           {/* CHAPITRE 2 : Milieu 2, Pertes & Géométrie de la barrière */}
           {activeChapter === 'ch2' && (
             <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-              <div className="md:col-span-7 divide-y divide-white/[0.09]">
+              <div className="md:col-span-7 divide-y divide-[var(--hairline-subtle)]">
                 <div className="pb-3.5 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label htmlFor="material-select" className="text-[11px] text-slate-300 block">
+                      <label htmlFor="material-select" className="text-[11px] text-[var(--text-secondary)] block">
                         Matériau du dioptre (Milieu 2)
                       </label>
-                      <select
-                        id="material-select"
-                        value={material.id}
-                        onChange={(e) => {
-                          const found = MATERIAL_PRESETS.find((m) => m.id === e.target.value);
-                          if (found) onMaterialChange(found);
-                        }}
-                        className="w-full bg-black/25 border border-white/15 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
-                      >
-                        {MATERIAL_PRESETS.map((mat) => (
-                          <option key={mat.id} value={mat.id} className="bg-[#0b1326] text-white">
-                            {mat.name} (
-                            {mat.isPEC
-                              ? 'PEC σ→∞'
-                              : mat.isConductor
-                              ? `σ=${mat.conductivity.toExponential(1)}`
-                              : `εr=${mat.epsilonR}, tanδ=${mat.lossTangent}`}
-                            )
-                          </option>
-                        ))}
-                        {material.id === 'custom' && (
-                          <option value="custom" className="bg-[#0b1326] text-white">
-                            Personnalisé (εr={material.epsilonR.toFixed(2)}, tanδ={material.lossTangent.toFixed(3)})
-                          </option>
-                        )}
-                      </select>
+                      <div className="relative">
+                        <select
+                          id="material-select"
+                          value={material.id}
+                          onChange={(e) => {
+                            const found = MATERIAL_PRESETS.find((m) => m.id === e.target.value);
+                            if (found) onMaterialChange(found);
+                          }}
+                          className="appearance-none w-full glass-select-pill rounded-lg pl-2.5 pr-7 py-2 text-xs cursor-pointer truncate focus:outline-none"
+                        >
+                          {MATERIAL_PRESETS.map((mat) => (
+                            <option key={mat.id} value={mat.id} className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                              {mat.name} (
+                              {mat.isPEC
+                                ? 'PEC σ→∞'
+                                : mat.isConductor
+                                ? `σ=${mat.conductivity.toExponential(1)}`
+                                : `εr=${mat.epsilonR}, tanδ=${mat.lossTangent}`}
+                              )
+                            </option>
+                          ))}
+                          {material.id === 'custom' && (
+                            <option value="custom" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                              Personnalisé (εr={material.epsilonR.toFixed(2)}, tanδ={material.lossTangent.toFixed(3)})
+                            </option>
+                          )}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                      </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label htmlFor="profile-select" className="text-[11px] text-slate-300 block">
+                      <label htmlFor="profile-select" className="text-[11px] text-[var(--text-secondary)] block">
                         Profil géométrique de surface
                       </label>
-                      <select
-                        id="profile-select"
-                        value={wall.textureProfile}
-                        onChange={(e) =>
-                          onWallChange({
-                            ...wall,
-                            textureProfile: e.target.value as SurfaceTextureProfile,
-                          })
-                        }
-                        className="w-full bg-black/25 border border-white/15 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
-                      >
-                        {textureProfiles.map((p) => (
-                          <option key={p.id} value={p.id} className="bg-[#0b1326] text-white">
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          id="profile-select"
+                          value={wall.textureProfile}
+                          onChange={(e) =>
+                            onWallChange({
+                              ...wall,
+                              textureProfile: e.target.value as SurfaceTextureProfile,
+                            })
+                          }
+                          className="appearance-none w-full glass-select-pill rounded-lg pl-2.5 pr-7 py-2 text-xs cursor-pointer truncate focus:outline-none"
+                        >
+                          {textureProfiles.map((p) => (
+                            <option key={p.id} value={p.id} className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" aria-hidden="true" />
+                      </div>
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-slate-300/85 leading-snug">{material.description}</p>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-snug">{material.description}</p>
 
                   {!material.isPEC && !material.isConductor && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/[0.06]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2.5 border-t border-[var(--hairline-subtle)]">
                       <div>
-                        <div className="flex justify-between text-[11px] text-slate-200">
+                        <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                           <label htmlFor="custom-eps">εr personnalisé</label>
-                          <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                          <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                             {material.epsilonR.toFixed(2)}
                           </span>
                         </div>
@@ -851,9 +857,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                       </div>
 
                       <div>
-                        <div className="flex justify-between text-[11px] text-slate-200">
+                        <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                           <label htmlFor="custom-tand">Pertes tan δ</label>
-                          <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                          <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                             {material.lossTangent.toFixed(3)}
                           </span>
                         </div>
@@ -881,11 +887,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                   )}
                 </div>
 
-                <div className="pt-3 grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+                <div className="pt-3 grid grid-cols-2 gap-4">
                   <div>
-                    <div className="flex justify-between text-[11px] text-slate-200">
+                    <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                       <label htmlFor="wall-thick">Épaisseur e</label>
-                      <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                      <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                         {wall.thickness.toFixed(1)} m
                       </span>
                     </div>
@@ -901,9 +907,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                   </div>
 
                   <div>
-                    <div className="flex justify-between text-[11px] text-slate-200">
+                    <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                       <label htmlFor="wall-depth">Relief h</label>
-                      <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                      <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                         {wall.textureDepth.toFixed(1)} m
                       </span>
                     </div>
@@ -919,9 +925,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                   </div>
 
                   <div>
-                    <div className="flex justify-between text-[11px] text-slate-200">
+                    <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                       <label htmlFor="wall-period">Pas Λ</label>
-                      <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                      <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                         {wall.texturePeriod.toFixed(1)} m
                       </span>
                     </div>
@@ -937,9 +943,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                   </div>
 
                   <div>
-                    <div className="flex justify-between text-[11px] text-slate-200">
+                    <div className="flex justify-between text-[11px] text-[var(--text-secondary)]">
                       <label htmlFor="wall-height">Hauteur H</label>
-                      <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                      <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                         {wall.height.toFixed(1)} m
                       </span>
                     </div>
@@ -956,7 +962,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                 </div>
               </div>
 
-              <div className="md:col-span-5 md:border-l md:border-white/[0.09] md:pl-5 divide-y divide-white/[0.09] space-y-3">
+              <div className="md:col-span-5 md:border-l md:border-[var(--hairline-subtle)] md:pl-5 divide-y divide-[var(--hairline-subtle)] space-y-3">
                 {renderVisualSwitches()}
                 <div className="pt-3">
                   <KatexEquations
@@ -976,7 +982,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
 
           {/* CHAPITRE 3 : Ondes stationnaires, Sondes & Oscilloscope complet */}
           {activeChapter === 'ch3' && (
-            <div className="divide-y divide-white/[0.09] space-y-3.5">
+            <div className="divide-y divide-[var(--hairline-subtle)] space-y-3.5">
               <Oscilloscope
                 probe={probe}
                 wave={wave}
@@ -987,14 +993,14 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
               />
 
               <div className="pt-3.5 grid grid-cols-1 md:grid-cols-12 gap-5">
-                <div className="md:col-span-6 divide-y divide-white/[0.09] space-y-3">
+                <div className="md:col-span-6 divide-y divide-[var(--hairline-subtle)] space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <div className="flex justify-between text-xs">
-                        <label htmlFor="ch3-freq" className="text-slate-200 font-medium">
+                        <label htmlFor="ch3-freq" className="text-[var(--text-secondary)] font-medium">
                           Fréquence (f)
                         </label>
-                        <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                        <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                           {wave.frequency.toFixed(2)} GHz
                         </span>
                       </div>
@@ -1011,10 +1017,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
 
                     <div>
                       <div className="flex justify-between text-xs">
-                        <label htmlFor="ch3-angle" className="text-slate-200 font-medium">
+                        <label htmlFor="ch3-angle" className="text-[var(--text-secondary)] font-medium">
                           Angle θi
                         </label>
-                        <span className="font-mono tabular-nums text-[#0a84ff] font-semibold">
+                        <span className="font-mono tabular-nums text-[var(--app-accent)] font-semibold">
                           {Math.round(wave.incidenceAngleDeg)}°
                         </span>
                       </div>
@@ -1041,7 +1047,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
                   <div className="pt-3">{renderVisualSwitches()}</div>
                 </div>
 
-                <div className="md:col-span-6 md:border-l md:border-white/[0.09] md:pl-5 divide-y divide-white/[0.09] space-y-3">
+                <div className="md:col-span-6 md:border-l md:border-[var(--hairline-subtle)] md:pl-5 divide-y divide-[var(--hairline-subtle)] space-y-3">
                   <KatexEquations
                     wave={wave}
                     wall={wall}

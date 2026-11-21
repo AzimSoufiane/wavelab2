@@ -126,6 +126,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
 
   const raycasterRef = useRef(new THREE.Raycaster());
   const draggingProbeRef = useRef<1 | 2 | null>(null);
+  const activeProbePointerIdRef = useRef<number | null>(null);
   const isSoftwareGlRef = useRef<boolean>(false);
   const [contextLost, setContextLost] = useState(false);
 
@@ -213,7 +214,8 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = !isSoftwareGl;
-    controls.dampingFactor = 0.06;
+    controls.dampingFactor = 0.08;
+    controls.rotateSpeed = isCompactMobile ? 0.72 : 1.0;
     controls.maxPolarAngle = Math.PI / 2 - 0.05;
     controls.minDistance = 7;
     controls.maxDistance = 68;
@@ -427,6 +429,9 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       cameraRef.current.aspect = aspect;
       cameraRef.current.fov = aspect < 1 ? Math.min(72, 44 / Math.max(0.62, aspect)) : 44;
       cameraRef.current.updateProjectionMatrix();
+      if (controlsRef.current) {
+        controlsRef.current.rotateSpeed = compact ? 0.72 : 1.0;
+      }
       rendererRef.current.setPixelRatio(
         isSoftwareGl
           ? 1
@@ -451,8 +456,8 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     domEl.addEventListener('webglcontextlost', handleContextLost);
     domEl.addEventListener('webglcontextrestored', handleContextRestored);
 
-    // Probe drag raycasting
-    const checkProbeHit = (clientX: number, clientY: number): 1 | 2 | null => {
+    // Unified mouse + touch probe drag raycasting
+    const checkProbeHit = (clientX: number, clientY: number, hitRadius = 2.2): 1 | 2 | null => {
       if (!containerRef.current || !cameraRef.current) return null;
       const rect = containerRef.current.getBoundingClientRect();
       _rayMouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -471,8 +476,8 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
         const prb = probeStateRef.current;
         const d1 = Math.hypot(_planeIntersect.x - prb.x1, _planeIntersect.z - prb.z1);
         const d2 = Math.hypot(_planeIntersect.x - prb.x2, _planeIntersect.z - prb.z2);
-        if (d1 < 2.2 && d1 <= d2) return 1;
-        if (d2 < 2.2) return 2;
+        if (d1 < hitRadius && d1 <= d2) return 1;
+        if (d2 < hitRadius) return 2;
       }
       return null;
     };
@@ -489,40 +494,60 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       return null;
     };
 
-    const handlePointerDown = (e: MouseEvent) => {
-      const hit = checkProbeHit(e.clientX, e.clientY);
+    const handlePointerDown = (e: PointerEvent) => {
+      if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const hitRadius = e.pointerType === 'touch' ? 2.6 : 2.2;
+      const hit = checkProbeHit(e.clientX, e.clientY, hitRadius);
       if (hit !== null) {
         draggingProbeRef.current = hit;
+        activeProbePointerIdRef.current = e.pointerId;
         controls.enabled = false;
         domEl.style.cursor = 'grabbing';
+        if (domEl.setPointerCapture) {
+          try {
+            domEl.setPointerCapture(e.pointerId);
+          } catch {
+            // Ignore synthetic/unsupported pointer capture errors
+          }
+        }
+        e.preventDefault();
       }
     };
 
-    const handlePointerMove = (e: MouseEvent) => {
-      if (draggingProbeRef.current !== null) {
+    const handlePointerMove = (e: PointerEvent) => {
+      if (draggingProbeRef.current !== null && activeProbePointerIdRef.current === e.pointerId) {
         const pt = getGroundPosition(e.clientX, e.clientY);
         if (pt) {
           const cx = Math.max(-14.5, Math.min(14.5, pt.x));
           const cz = Math.max(-9.5, Math.min(9.5, pt.z));
           onProbeMoveRef.current(draggingProbeRef.current, cx, cz);
         }
-      } else {
+      } else if (e.pointerType === 'mouse' && draggingProbeRef.current === null) {
         const hit = checkProbeHit(e.clientX, e.clientY);
         domEl.style.cursor = hit !== null ? 'grab' : 'default';
       }
     };
 
-    const handlePointerUp = () => {
-      if (draggingProbeRef.current !== null) {
+    const handlePointerUp = (e: PointerEvent) => {
+      if (draggingProbeRef.current !== null && activeProbePointerIdRef.current === e.pointerId) {
+        if (domEl.hasPointerCapture?.(e.pointerId)) {
+          try {
+            domEl.releasePointerCapture(e.pointerId);
+          } catch {
+            // Ignore release errors
+          }
+        }
         draggingProbeRef.current = null;
+        activeProbePointerIdRef.current = null;
         controls.enabled = true;
         domEl.style.cursor = 'default';
       }
     };
 
-    domEl.addEventListener('mousedown', handlePointerDown);
-    window.addEventListener('mousemove', handlePointerMove);
-    window.addEventListener('mouseup', handlePointerUp);
+    domEl.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
 
     // Animation loop (paced with afterDraw on software WebGL)
     let frameId = 0;
@@ -795,9 +820,10 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       window.removeEventListener('resize', handleResize);
       domEl.removeEventListener('webglcontextlost', handleContextLost);
       domEl.removeEventListener('webglcontextrestored', handleContextRestored);
-      domEl.removeEventListener('mousedown', handlePointerDown);
-      window.removeEventListener('mousemove', handlePointerMove);
-      window.removeEventListener('mouseup', handlePointerUp);
+      domEl.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+      window.removeEventListener('pointercancel', handlePointerUp);
       controls.dispose();
       if (wallGroupRef.current) {
         disposeGroupResources(wallGroupRef.current);
@@ -1108,16 +1134,16 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
   }, [simulation.cameraMode]);
 
   return (
-    <div className="relative w-full h-full select-none overflow-hidden">
+    <div className="relative w-full h-full select-none overflow-hidden touch-none">
       {/* Dedicated full-screen WebGL canvas mount */}
       <div
         ref={containerRef}
         data-testid="three-viewport"
-        className="w-full h-full"
+        className="w-full h-full touch-none"
       />
 
       {contextLost && (
-        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#040814]/90 text-slate-200 text-sm">
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[var(--surface-scrim)] backdrop-blur-sm text-[var(--text-secondary)] text-sm">
           Contexte WebGL interrompu — réinitialisation en cours...
         </div>
       )}

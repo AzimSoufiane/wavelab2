@@ -4,24 +4,88 @@
 :root,
 html[data-theme="dark"],
 [data-theme="dark"] {
-  --app-accent: #0a84ff;
+  /* Typography tokens (Hallmark 2+1 rule: Plus Jakarta Sans + IBM Plex Mono) */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* 60% Optical Obsidian Backdrop & Spatial Scene Tokens */
+  --surface-canvas: #040814;
+  --scene-bg-start: #040814;
+  --scene-bg-mid: #091734;
+  --scene-bg-deep: #0e244d;
+  --scene-bg-end: #050a18;
+  --scene-glow-primary: rgba(10, 132, 255, 0.34);
+  --scene-glow-secondary: rgba(56, 189, 248, 0.22);
+  --scene-glow-depth: rgba(30, 64, 175, 0.36);
+
+  /* 30% Structural Liquid Glass & Hairline Tokens */
+  --glass-bg-top: rgba(14, 25, 50, 0.38);
+  --glass-bg-bottom: rgba(8, 16, 34, 0.50);
+  --glass-bg-mobile-top: rgba(12, 21, 44, 0.58);
+  --glass-bg-mobile-bottom: rgba(8, 14, 30, 0.68);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-highlight: rgba(255, 255, 255, 0.26);
+  --glass-shadow: rgba(0, 0, 0, 0.46);
+  --surface-inset: rgba(255, 255, 255, 0.06);
+  --surface-inset-hover: rgba(255, 255, 255, 0.11);
+  --surface-popover: rgba(12, 22, 46, 0.78);
+  --surface-scrim: rgba(2, 6, 16, 0.58);
+  --surface-option: #0b1326;
+  --hairline-subtle: rgba(255, 255, 255, 0.10);
+  --hairline-strong: rgba(255, 255, 255, 0.18);
+
+  /* Text Hierarchy Tokens (Dark Mode Optical Compensation) */
+  --text-primary: #f4f7fb;
+  --text-secondary: rgba(226, 232, 240, 0.86);
+  --text-muted: rgba(165, 180, 204, 0.80);
+  --text-on-accent: #ffffff;
+
+  /* 10% Focal Cobalt Accent & Scientific Telemetry Tokens */
+  --app-accent: #38bdf8;
+  --app-accent-soft: rgba(10, 132, 255, 0.22);
+  --app-accent-border: rgba(125, 211, 252, 0.44);
+  --probe-s1: #22d3ee;
+  --probe-s2: #f59e0b;
+  --status-nominal: #34d399;
+  --status-critical: #fb7185;
+  --status-critical-bg: rgba(244, 63, 94, 0.16);
+  --status-critical-border: rgba(251, 113, 133, 0.40);
+  --curve-indigo: #818cf8;
+
+  /* Oscilloscope Instrument Surface Tokens */
+  --scope-bg: rgba(6, 10, 18, 0.86);
+  --scope-grid: #151f32;
+  --scope-axis: #334155;
+  --scope-label: #64748b;
+
+  /* Glisse Liquid Glass System Tokens */
   --lg-fill: #0a84ff;
   --lg-on: #0a84ff;
-  --lg-ring: rgba(10, 132, 255, 0.55);
-  --lg-foreground: #f8fafc;
-  --lg-muted: rgba(226, 232, 240, 0.72);
-  --lg-glass: rgba(18, 28, 52, 0.54);
-  --lg-glass-active: rgba(34, 52, 92, 0.72);
-  --lg-edge: rgba(255, 255, 255, 0.14);
-  --lg-selection: rgba(10, 132, 255, 0.22);
-  --lg-segment-track: rgba(255, 255, 255, 0.08);
-  --lg-segment-thumb: #0a84ff;
+  --lg-ring: rgba(56, 189, 248, 0.58);
+  --lg-foreground: #f4f7fb;
+  --lg-muted: rgba(226, 232, 240, 0.78);
+  --lg-glass: rgba(20, 34, 66, 0.30);
+  --lg-glass-active: rgba(42, 68, 122, 0.48);
+  --lg-edge: rgba(255, 255, 255, 0.20);
+  --lg-rim-shine: 0.24;
+  --lg-glass-bend: 2.2;
+  --lg-glass-dispersion: 0.7;
+  --lg-blur: 4px;
+  --lg-selection: rgba(10, 132, 255, 0.28);
+  --lg-lens: rgba(56, 189, 248, 0.14);
+  --lg-segment-track: rgba(255, 255, 255, 0.05);
+  --lg-segment-thumb: rgba(10, 132, 255, 0.88);
   --lg-segment-label: #ffffff;
-  --lg-surface: rgba(12, 19, 36, 0.88);
-  --lg-surface-edge: rgba(255, 255, 255, 0.16);
-  --lg-rail: rgba(255, 255, 255, 0.2);
-  --lg-track: rgba(255, 255, 255, 0.22);
-  --lg-shadow: rgba(0, 0, 0, 0.48);
+  --lg-surface: rgba(14, 24, 48, 0.72);
+  --lg-surface-edge: rgba(255, 255, 255, 0.20);
+  --lg-rail: rgba(255, 255, 255, 0.22);
+  --lg-track: rgba(255, 255, 255, 0.24);
+  --lg-shadow: rgba(0, 0, 0, 0.44);
+
+  /* Motion Timing Tokens */
+  --ease-optical: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 160ms;
+  --duration-sheet: 220ms;
 }
 
 @layer base {
@@ -32,9 +96,11 @@ html[data-theme="dark"],
     width: 100%;
     margin: 0;
     padding: 0;
-    background-color: #040814;
-    color: #f8fafc;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+    overscroll-behavior: none;
+    font-family: var(--font-sans);
+    letter-spacing: 0.005em;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -43,7 +109,7 @@ html[data-theme="dark"],
   samp,
   pre,
   .font-mono {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
 }
@@ -52,52 +118,140 @@ html[data-theme="dark"],
   font-variant-numeric: tabular-nums;
 }
 
+.text-balance {
+  text-wrap: balance;
+}
+
 /* Deep luminous gradient background behind the Three.js scene so glass has rich detail to refract */
 .deep-scene-gradient {
   background:
-    radial-gradient(ellipse 72% 54% at 18% 18%, rgba(10, 132, 255, 0.34) 0%, transparent 62%),
-    radial-gradient(ellipse 58% 48% at 84% 22%, rgba(56, 189, 248, 0.22) 0%, transparent 58%),
-    radial-gradient(ellipse 75% 58% at 52% 88%, rgba(30, 64, 175, 0.36) 0%, transparent 65%),
-    linear-gradient(155deg, #040814 0%, #091734 45%, #0e244d 76%, #050a18 100%);
+    radial-gradient(ellipse 72% 54% at 18% 18%, var(--scene-glow-primary) 0%, transparent 62%),
+    radial-gradient(ellipse 58% 48% at 84% 22%, var(--scene-glow-secondary) 0%, transparent 58%),
+    radial-gradient(ellipse 75% 58% at 52% 88%, var(--scene-glow-depth) 0%, transparent 65%),
+    linear-gradient(
+      155deg,
+      var(--scene-bg-start) 0%,
+      var(--scene-bg-mid) 45%,
+      var(--scene-bg-deep) 76%,
+      var(--scene-bg-end) 100%
+    );
 }
 
-/* Plain CSS glass for the floating parameter bottom sheet (intentionally NOT Glisse <Glass>) */
+/* Single-elevation translucent frosted optical glass for the bottom sheet */
 .bottom-sheet-glass {
-  background: linear-gradient(
-    180deg,
-    rgba(13, 21, 40, 0.64) 0%,
-    rgba(8, 13, 27, 0.76) 100%
-  );
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(180deg, var(--glass-bg-top) 0%, var(--glass-bg-bottom) 100%);
+  -webkit-backdrop-filter: blur(14px) saturate(165%);
+  backdrop-filter: blur(14px) saturate(165%);
+  border: 1px solid var(--glass-border);
   box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.52),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    0 18px 48px var(--glass-shadow),
+    inset 0 1px 0 var(--glass-highlight);
 }
 
-/* Single accent active styling refinements for Glisse SegmentedControl & TabBar */
+/* Compact Glisse overrides for dense scientific controls, modals & popovers */
+.lg-glass.lg-modal-glass {
+  background: rgba(12, 22, 46, 0.72);
+  border-radius: 20px;
+}
+
+.lg-glass.lg-popover-glass {
+  background: rgba(12, 22, 46, 0.80);
+  border-radius: 14px;
+}
+
+.lg-button.lg-btn-compact {
+  --lg-height: 30px;
+  min-width: 30px;
+  padding: 0 10px;
+  font-size: 11px;
+  border-radius: 9999px;
+}
+
+.lg-button.lg-btn-compact-md {
+  --lg-height: 36px;
+  min-width: 36px;
+  padding: 0 14px;
+  font-size: 12px;
+  border-radius: 9999px;
+}
+
+.lg-button.lg-btn-compact-icon {
+  --lg-height: 32px;
+  min-width: 32px;
+  padding: 0;
+}
+
+.lg-input.lg-input-compact {
+  --lg-height: 36px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+.lg-input.lg-input-locked {
+  opacity: 0.86;
+}
+
+.lg-input.lg-input-locked .lg-input-control {
+  cursor: not-allowed;
+  color: var(--text-secondary);
+}
+
+.glass-select-pill {
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--lg-edge);
+  color: var(--text-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transition: border-color var(--duration-fast) var(--ease-optical),
+    background-color var(--duration-fast) var(--ease-optical);
+}
+
+.glass-select-pill:hover {
+  background-color: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.glass-select-pill:focus-visible,
+.glass-select-pill:focus-within {
+  outline: none;
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 2px var(--lg-ring);
+}
+
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--lg-ring);
+}
+
+/* Luminous active styling refinements for Glisse SegmentedControl & TabBar */
 .lg-segmented .lg-tab:not([data-selected]) {
-  color: rgba(226, 232, 240, 0.76);
+  color: var(--lg-muted);
 }
 
 .lg-segmented .lg-tab[data-selected] {
-  color: #ffffff;
+  color: var(--text-on-accent);
   font-weight: 600;
 }
 
 .lg-tab-bar[data-icons] .lg-tab {
-  color: rgba(226, 232, 240, 0.76);
+  color: var(--lg-muted);
 }
 
 .lg-tab-bar[data-icons] .lg-tab[data-selected],
 .lg-tab-bar[data-icons] .lg-tab-tint {
-  color: var(--app-accent);
+  color: #ffffff;
+}
+
+.lg-tab-bar[data-icons] .lg-tab[data-selected] svg,
+.lg-tab-bar[data-icons] .lg-tab-tint svg {
+  color: #7dd3fc;
 }
 
 .lg-tab-bar .lg-tab-lens::before {
-  background: rgba(10, 132, 255, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.45);
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.34) 0%, rgba(10, 132, 255, 0.28) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 0 0 0 1px rgba(125, 211, 252, 0.45),
+    0 4px 14px rgba(10, 132, 255, 0.22);
 }
 
 /* Fallback to plain CSS blur when live SVG/WebGL refraction is unsupported */
@@ -106,7 +260,7 @@ html[data-theme="dark"],
   .lg-tab-bar-glass {
     -webkit-backdrop-filter: blur(16px) saturate(150%);
     backdrop-filter: blur(16px) saturate(150%);
-    background-color: rgba(14, 22, 42, 0.72);
+    background-color: rgba(14, 22, 42, 0.68);
   }
 }
 
@@ -117,7 +271,12 @@ html[data-theme="dark"],
   --lg-filter: saturate(1.35) !important;
   -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
   backdrop-filter: blur(10px) saturate(135%) !important;
-  background-color: rgba(14, 22, 42, 0.78) !important;
+  background-color: rgba(14, 22, 42, 0.72) !important;
+}
+
+[data-refraction="fallback"] .lg-glass.lg-modal-glass,
+[data-refraction="fallback"] .lg-glass.lg-popover-glass {
+  background-color: rgba(10, 18, 38, 0.86) !important;
 }
 
 [data-refraction="fallback"] .lg-tab-lens::before {
@@ -126,15 +285,16 @@ html[data-theme="dark"],
   backdrop-filter: none !important;
 }
 
+[data-refraction="fallback"] .lg-segmented[data-lifted] .lg-segmented-thumb {
+  opacity: 0.94 !important;
+  box-shadow: 0 2px 10px rgba(10, 132, 255, 0.38);
+}
+
 @media (max-width: 767px), (pointer: coarse) {
   .bottom-sheet-glass {
-    background: linear-gradient(
-      180deg,
-      rgba(12, 19, 36, 0.78) 0%,
-      rgba(8, 13, 27, 0.86) 100%
-    );
-    -webkit-backdrop-filter: blur(12px) saturate(135%);
-    backdrop-filter: blur(12px) saturate(135%);
+    background: linear-gradient(180deg, var(--glass-bg-mobile-top) 0%, var(--glass-bg-mobile-bottom) 100%);
+    -webkit-backdrop-filter: blur(10px) saturate(135%);
+    backdrop-filter: blur(10px) saturate(135%);
   }
 }
 
@@ -144,7 +304,7 @@ html[data-theme="dark"],
   .lg-glass,
   .lg-tab-bar-glass,
   .lg-menu-surface {
-    background: rgba(9, 15, 29, 0.92);
+    background: rgba(9, 15, 29, 0.94);
   }
 }
 
@@ -167,6 +327,15 @@ html[data-theme="dark"],
   background: rgba(148, 163, 184, 0.45);
 }
 
+/* Prevent vertical sheet scroll from cancelling horizontal segmented swipes on touch */
+.lg-segmented {
+  touch-action: none;
+}
+
+.camera-segmented {
+  --lg-tab-width: clamp(50px, 16vw, 60px);
+}
+
 /* Compact mobile tab width for floating speed bar */
 .speed-segmented {
   --lg-tab-width: 41px;
@@ -179,12 +348,12 @@ html[data-theme="dark"],
 }
 
 .sheet-body-transition {
-  transition: max-height 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: max-height var(--duration-sheet) var(--ease-optical);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sheet-body-transition {
+  .sheet-body-transition,
+  .glass-select-pill {
     transition: none;
   }
 }
-

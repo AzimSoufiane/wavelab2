@@ -356,7 +356,7 @@ export const App: React.FC = () => {
       data-profile={wall.textureProfile}
       data-material={material.id}
       data-chapter={activeChapter}
-      className="relative w-screen h-screen overflow-hidden text-slate-100"
+      className="relative w-screen h-screen overflow-hidden text-[var(--text-primary)]"
     >
       {/* Couche 0 (Sibling) : Canvas Three.js plein écran enveloppé dans [data-glisse-backdrop] sur desktop uniquement */}
       <div

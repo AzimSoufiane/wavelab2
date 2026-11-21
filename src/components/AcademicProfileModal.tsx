@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { Button, Glass, Input } from 'glisse';
 import { AcademicProfile } from '../types';
 import {
   CONSTANT_INSTRUCTOR_NAME,
   DEFAULT_ACADEMIC_PROFILE,
 } from '../utils/academicProfile';
-import { GraduationCap, User, BookOpen, RotateCcw, Lock } from 'lucide-react';
+import { GraduationCap, User, BookOpen, RotateCcw, Lock, X } from 'lucide-react';
 
 interface AcademicProfileModalProps {
   isOpen: boolean;
@@ -26,6 +27,15 @@ export const AcademicProfileModal: React.FC<AcademicProfileModalProps> = ({
       setDraft(profile);
     }
   }, [isOpen, profile]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -52,233 +62,238 @@ export const AcademicProfileModal: React.FC<AcademicProfileModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="Informations étudiant et enseignant"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-scrim)] backdrop-blur-xs p-4"
     >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bottom-sheet-glass rounded-2xl p-5 space-y-4 text-slate-100"
-      >
-        <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2.5">
-            <GraduationCap className="w-5 h-5 text-[#0a84ff] shrink-0" />
-            <div>
-              <h3 className="font-semibold text-sm text-slate-100">
-                Informations Étudiant &amp; Enseignant
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Affichées dans l&apos;interface et intégrées automatiquement dans le rapport PDF.
-              </p>
+      <Glass className="w-full max-w-2xl max-h-[90vh] overflow-y-auto lg-modal-glass rounded-2xl p-5 sm:p-6 text-[var(--text-primary)]">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="flex items-start justify-between gap-3 border-b border-[var(--hairline-subtle)] pb-3.5">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-[var(--app-accent-soft)] border border-[var(--app-accent-border)] flex items-center justify-center shrink-0">
+                <GraduationCap className="w-4.5 h-4.5 text-[var(--app-accent)]" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base text-[var(--text-primary)] text-balance">
+                  Informations Étudiant &amp; Enseignant
+                </h3>
+                <p className="text-[11.5px] text-[var(--text-muted)]">
+                  Affichées dans l&apos;interface et intégrées automatiquement dans le rapport PDF.
+                </p>
+              </div>
             </div>
+            <Button
+              type="button"
+              icon={<X className="w-4 h-4" />}
+              aria-label="Fermer la fenêtre des informations académiques"
+              onClick={onClose}
+              className="lg-btn-compact-icon shrink-0"
+            />
           </div>
-          <button
-            type="button"
-            aria-label="Fermer la fenêtre des informations académiques"
-            onClick={onClose}
-            className="text-slate-400 hover:text-white text-lg font-bold px-2"
-          >
-            ×
-          </button>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Bloc Étudiant */}
-          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3.5 space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff]">
-              <User className="w-4 h-4" />
+        {/* Single-elevation architectural layout separated by hairline dividers */}
+        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[var(--hairline-subtle)] gap-y-5 md:gap-y-0">
+          {/* Colonne Étudiant */}
+          <div className="pb-4 md:pb-0 md:pr-5 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--app-accent)]">
+              <User className="w-3.5 h-3.5 shrink-0" />
               <span>Mes informations (Étudiant)</span>
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="acad-student-name" className="text-[11px] text-slate-300 block">
+              <label htmlFor="acad-student-name" className="text-[11px] text-[var(--text-secondary)] block">
                 Nom &amp; Prénom
               </label>
-              <input
+              <Input
                 id="acad-student-name"
                 type="text"
                 placeholder="Ex: AZIM Soufiane"
                 value={draft.studentName}
-                onChange={(e) => setDraft({ ...draft, studentName: e.target.value })}
-                className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                onValueChange={(val) => setDraft({ ...draft, studentName: val })}
+                className="w-full lg-input-compact"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <div className="space-y-1">
-                <label htmlFor="acad-student-class" className="text-[11px] text-slate-300 block">
+                <label htmlFor="acad-student-class" className="text-[11px] text-[var(--text-secondary)] block">
                   Filière / Groupe
                 </label>
-                <input
+                <Input
                   id="acad-student-class"
                   type="text"
                   placeholder="Ex: GSR1-S1"
                   value={draft.studentClass}
-                  onChange={(e) => setDraft({ ...draft, studentClass: e.target.value })}
-                  className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                  onValueChange={(val) => setDraft({ ...draft, studentClass: val })}
+                  className="w-full lg-input-compact"
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="acad-student-id" className="text-[11px] text-slate-300 block">
+                <label htmlFor="acad-student-id" className="text-[11px] text-[var(--text-secondary)] block">
                   CNE / Code Apogée
                 </label>
-                <input
+                <Input
                   id="acad-student-id"
                   type="text"
                   placeholder="Ex: P123456789"
                   value={draft.studentId}
-                  onChange={(e) => setDraft({ ...draft, studentId: e.target.value })}
-                  className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                  onValueChange={(val) => setDraft({ ...draft, studentId: val })}
+                  className="w-full lg-input-compact font-mono"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="acad-student-email" className="text-[11px] text-slate-300 block">
+              <label htmlFor="acad-student-email" className="text-[11px] text-[var(--text-secondary)] block">
                 Email académique
               </label>
-              <input
+              <Input
                 id="acad-student-email"
                 type="email"
                 placeholder="prenom.nom@etu.uae.ac.ma"
                 value={draft.studentEmail}
-                onChange={(e) => setDraft({ ...draft, studentEmail: e.target.value })}
-                className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                onValueChange={(val) => setDraft({ ...draft, studentEmail: val })}
+                className="w-full lg-input-compact"
               />
             </div>
           </div>
 
-          {/* Bloc Enseignant */}
-          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3.5 space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0a84ff]">
-              <GraduationCap className="w-4 h-4" />
+          {/* Colonne Enseignant */}
+          <div className="pt-4 md:pt-0 md:pl-5 space-y-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--app-accent)]">
+              <GraduationCap className="w-3.5 h-3.5 shrink-0" />
               <span>Informations de l&apos;enseignant(e)</span>
             </div>
 
             <div className="space-y-1">
               <div className="flex items-center justify-between gap-2">
-                <label htmlFor="acad-teacher-name" className="text-[11px] text-slate-300">
+                <label htmlFor="acad-teacher-name" className="text-[11px] text-[var(--text-secondary)]">
                   Nom de l&apos;enseignant(e) / Encadrant(e)
                 </label>
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-slate-300">
-                  <Lock className="w-3 h-3 text-[#0a84ff]" />
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono text-[var(--text-muted)]">
+                  <Lock className="w-3 h-3 text-[var(--app-accent)]" />
                   <span>Constante</span>
                 </span>
               </div>
-              <input
+              <Input
                 id="acad-teacher-name"
                 type="text"
                 readOnly
                 disabled
                 aria-readonly="true"
                 value={CONSTANT_INSTRUCTOR_NAME || 'À définir (constante verrouillée)'}
-                className="w-full bg-black/35 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 cursor-not-allowed opacity-85"
+                className="w-full lg-input-compact lg-input-locked"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2.5">
               <div className="space-y-1">
-                <label htmlFor="acad-teacher-title" className="text-[11px] text-slate-300 block">
+                <label htmlFor="acad-teacher-title" className="text-[11px] text-[var(--text-secondary)] block">
                   Titre / Grade
                 </label>
-                <input
+                <Input
                   id="acad-teacher-title"
                   type="text"
                   placeholder="Ex: Professeur"
                   value={draft.teacherTitle}
-                  onChange={(e) => setDraft({ ...draft, teacherTitle: e.target.value })}
-                  className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                  onValueChange={(val) => setDraft({ ...draft, teacherTitle: val })}
+                  className="w-full lg-input-compact"
                 />
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="acad-teacher-dept" className="text-[11px] text-slate-300 block">
+                <label htmlFor="acad-teacher-dept" className="text-[11px] text-[var(--text-secondary)] block">
                   Département
                 </label>
-                <input
+                <Input
                   id="acad-teacher-dept"
                   type="text"
                   placeholder="Ex: GSR / TIC"
                   value={draft.teacherDepartment}
-                  onChange={(e) => setDraft({ ...draft, teacherDepartment: e.target.value })}
-                  className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                  onValueChange={(val) => setDraft({ ...draft, teacherDepartment: val })}
+                  className="w-full lg-input-compact"
                 />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="acad-teacher-email" className="text-[11px] text-slate-300 block">
+              <label htmlFor="acad-teacher-email" className="text-[11px] text-[var(--text-secondary)] block">
                 Email de l&apos;enseignant(e)
               </label>
-              <input
+              <Input
                 id="acad-teacher-email"
                 type="email"
                 placeholder="enseignant@uae.ac.ma"
                 value={draft.teacherEmail}
-                onChange={(e) => setDraft({ ...draft, teacherEmail: e.target.value })}
-                className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                onValueChange={(val) => setDraft({ ...draft, teacherEmail: val })}
+                className="w-full lg-input-compact"
               />
             </div>
           </div>
         </div>
 
-        {/* Bloc Établissement & Module */}
-        <div className="bg-white/[0.04] border border-white/10 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Établissement & Module (hairline-separated row) */}
+        <div className="pt-4 border-t border-[var(--hairline-subtle)] grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label htmlFor="acad-institution" className="text-[11px] text-slate-300 flex items-center gap-1">
-              <BookOpen className="w-3.5 h-3.5 text-[#0a84ff]" />
+            <label htmlFor="acad-institution" className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-[var(--app-accent)]" />
               <span>Établissement</span>
             </label>
-            <input
+            <Input
               id="acad-institution"
               type="text"
               placeholder="ENSA Tanger"
               value={draft.institution}
-              onChange={(e) => setDraft({ ...draft, institution: e.target.value })}
-              className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+              onValueChange={(val) => setDraft({ ...draft, institution: val })}
+              className="w-full lg-input-compact"
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="acad-module" className="text-[11px] text-slate-300 block">
+            <label htmlFor="acad-module" className="text-[11px] text-[var(--text-secondary)] block">
               Module / Intitulé du TP
             </label>
-            <input
+            <Input
               id="acad-module"
               type="text"
               placeholder="Mod-M115 : Propagation dans les milieux"
               value={draft.moduleName}
-              onChange={(e) => setDraft({ ...draft, moduleName: e.target.value })}
-              className="w-full bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+              onValueChange={(val) => setDraft({ ...draft, moduleName: val })}
+              className="w-full lg-input-compact"
             />
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
-          <button
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[var(--hairline-subtle)]">
+          <Button
             type="button"
+            icon={<RotateCcw className="w-3.5 h-3.5" />}
             onClick={() => setDraft({ ...DEFAULT_ACADEMIC_PROFILE })}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-xs text-slate-200 flex items-center gap-1.5 transition-colors"
+            className="lg-btn-compact-md font-medium"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Réinitialiser</span>
-          </button>
+            Réinitialiser
+          </Button>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-xs text-slate-200 transition-colors"
+              className="lg-btn-compact-md font-medium"
             >
               Annuler
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-1.5 rounded-lg bg-[#0a84ff] hover:brightness-110 text-white font-semibold text-xs transition-all"
+              variant="filled"
+              className="lg-btn-compact-md font-semibold"
             >
               Enregistrer
-            </button>
+            </Button>
           </div>
         </div>
-      </form>
+        </form>
+      </Glass>
     </div>
   );
 };

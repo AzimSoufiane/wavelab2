@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Menu, SegmentedControl } from 'glisse';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Glass, Input, Menu, SegmentedControl } from 'glisse';
 import {
   AcademicProfile,
   SimulationState,
@@ -37,6 +37,7 @@ import {
   GraduationCap,
   MoreHorizontal,
   Gauge,
+  X,
 } from 'lucide-react';
 
 interface HeaderBarProps {
@@ -79,10 +80,20 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
   const [showSavedModal, setShowSavedModal] = useState(false);
   const [saveNameInput, setSaveNameInput] = useState('');
   const [selectedPreset, setSelectedPreset] = useState('dielectric_barrier');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSavedPresets(loadPresetsFromLocalStorage());
   }, []);
+
+  useEffect(() => {
+    if (!showSavedModal) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowSavedModal(false);
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [showSavedModal]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -426,54 +437,60 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
             title={sheetExpanded ? 'Réduire le panneau' : 'Ouvrir les paramètres'}
           />
 
-          <div className="flex items-center gap-2 px-3 h-10 rounded-full bottom-sheet-glass min-w-0">
+          <Glass className="flex items-center gap-2.5 pl-3 pr-2 h-10 rounded-full min-w-0">
             <div className="hidden sm:flex items-center gap-1.5 whitespace-nowrap shrink-0">
-              <Waves className="w-4 h-4 text-[#0a84ff]" />
-              <span className="font-semibold text-[13px] text-white tracking-tight">
+              <Waves className="w-4 h-4 text-[var(--app-accent)]" />
+              <span className="font-semibold text-[13px] text-[var(--text-primary)] tracking-tight">
                 WaveLab 3D
               </span>
-              <span className="hidden xl:inline text-[11px] text-slate-300/80 font-mono">
+              <span className="hidden xl:inline text-[11px] text-[var(--text-muted)] font-mono">
                 · {academicProfile.institution}
               </span>
             </div>
 
-            <div className="hidden sm:block h-4 w-px bg-white/15 shrink-0" aria-hidden="true" />
+            <div className="hidden sm:block h-4 w-px bg-[var(--hairline-strong)] shrink-0" aria-hidden="true" />
 
             <label htmlFor="preset-selector" className="sr-only">
               Scénario pédagogique Mod-M115
             </label>
-            <select
-              id="preset-selector"
-              value={selectedPreset}
-              onChange={(e) => handlePresetSelect(e.target.value)}
-              className="w-[148px] sm:w-[210px] md:w-[230px] bg-transparent text-xs text-slate-100 font-medium focus:outline-none cursor-pointer truncate"
-            >
-              <option value="dielectric_barrier" className="bg-[#0b1326] text-white">
-                Ch. 1/3 : Dioptre Polystyrène
-              </option>
-              <option value="brewster_tm" className="bg-[#0b1326] text-white">
-                Ch. 1 : Angle de Brewster TM
-              </option>
-              <option value="glass_air_tir" className="bg-[#0b1326] text-white">
-                Ch. 1 : Verre → Air (TIR)
-              </option>
-              <option value="pec_standing" className="bg-[#0b1326] text-white">
-                Ch. 2/3 : Conducteur Parfait (PEC)
-              </option>
-              <option value="copper_conductor" className="bg-[#0b1326] text-white">
-                Ch. 2 : Cuivre Réel 10 GHz
-              </option>
-              <option value="cavity_slot" className="bg-[#0b1326] text-white">
-                Réseau à Fentes (« Col d’air »)
-              </option>
-              <option value="te10_propagating" className="bg-[#0b1326] text-white">
-                Guide TE10 Propagatif (f &gt; fc)
-              </option>
-              <option value="cutoff_evanescent" className="bg-[#0b1326] text-white">
-                Guide sous Coupure (Évanescent)
-              </option>
-            </select>
-          </div>
+            <div className="relative flex items-center min-w-0">
+              <select
+                id="preset-selector"
+                value={selectedPreset}
+                onChange={(e) => handlePresetSelect(e.target.value)}
+                className="appearance-none w-[150px] sm:w-[214px] md:w-[234px] pr-5 bg-transparent text-xs text-[var(--text-primary)] font-medium focus:outline-none cursor-pointer truncate"
+              >
+                <option value="dielectric_barrier" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Ch. 1/3 : Dioptre Polystyrène
+                </option>
+                <option value="brewster_tm" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Ch. 1 : Angle de Brewster TM
+                </option>
+                <option value="glass_air_tir" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Ch. 1 : Verre → Air (TIR)
+                </option>
+                <option value="pec_standing" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Ch. 2/3 : Conducteur Parfait (PEC)
+                </option>
+                <option value="copper_conductor" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Ch. 2 : Cuivre Réel 10 GHz
+                </option>
+                <option value="cavity_slot" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Réseau à Fentes (« Col d’air »)
+                </option>
+                <option value="te10_propagating" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Guide TE10 Propagatif (f &gt; fc)
+                </option>
+                <option value="cutoff_evanescent" className="bg-[var(--surface-option)] text-[var(--text-primary)]">
+                  Guide sous Coupure (Évanescent)
+                </option>
+              </select>
+              <ChevronDown
+                className="w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none absolute right-0.5"
+                aria-hidden="true"
+              />
+            </div>
+          </Glass>
         </div>
 
         {/* Zone 2 : Modes de vue 3D (Glisse SegmentedControl sur desktop) */}
@@ -590,13 +607,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
         aria-label="Contrôle de vitesse de simulation"
         className="fixed top-[58px] left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-3 z-20 pointer-events-auto flex items-center gap-1.5 select-none"
       >
-        <div
-          className="h-8 px-2 sm:px-2.5 rounded-full bottom-sheet-glass flex items-center gap-1.5 text-[11px] font-medium text-slate-200 whitespace-nowrap"
+        <Glass
+          className="h-8 px-2.5 rounded-full flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-secondary)] whitespace-nowrap"
           title="Glisser sur la barre pour ajuster la vitesse"
         >
-          <Gauge className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
+          <Gauge className="w-3.5 h-3.5 text-[var(--app-accent)] shrink-0" />
           <span className="hidden sm:inline">Vitesse</span>
-        </div>
+        </Glass>
 
         <SegmentedControl
           aria-label="Vitesse de simulation"
@@ -614,13 +631,13 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
       </div>
 
       {toastMessage && (
-        <div
+        <Glass
           role="status"
-          className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bottom-sheet-glass rounded-xl text-xs font-medium text-white"
+          className="fixed top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium text-[var(--text-primary)]"
         >
-          <Check className="w-4 h-4 text-[#0a84ff]" />
+          <Check className="w-4 h-4 text-[var(--app-accent)]" />
           <span>{toastMessage}</span>
-        </div>
+        </Glass>
       )}
 
       {showSavedModal && (
@@ -628,122 +645,127 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
           role="dialog"
           aria-modal="true"
           aria-label="Gestion des présélections"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSavedModal(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--surface-scrim)] backdrop-blur-xs p-4"
         >
-          <div className="w-full max-w-md bottom-sheet-glass rounded-2xl p-5 space-y-4 text-slate-100">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2">
-                <Bookmark className="w-5 h-5 text-[#0a84ff]" />
-                <h3 className="font-semibold text-sm text-slate-100">
+          <Glass className="w-full max-w-md lg-modal-glass rounded-2xl p-5 sm:p-6 space-y-4 text-[var(--text-primary)]">
+            <div className="flex items-center justify-between border-b border-[var(--hairline-subtle)] pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[var(--app-accent-soft)] border border-[var(--app-accent-border)] flex items-center justify-center shrink-0">
+                  <Bookmark className="w-4 h-4 text-[var(--app-accent)]" />
+                </div>
+                <h3 className="font-semibold text-sm text-[var(--text-primary)]">
                   Configurations enregistrées
                 </h3>
               </div>
-              <button
-                type="button"
+              <Button
+                icon={<X className="w-4 h-4" />}
                 aria-label="Fermer la fenêtre"
                 onClick={() => setShowSavedModal(false)}
-                className="text-slate-400 hover:text-white text-lg font-bold px-2"
-              >
-                ×
-              </button>
+                className="lg-btn-compact-icon"
+              />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="preset-name-input" className="text-xs font-medium text-slate-300 block">
+              <label htmlFor="preset-name-input" className="text-xs font-medium text-[var(--text-secondary)] block">
                 Nommer la configuration courante
               </label>
               <div className="flex gap-2">
-                <input
+                <Input
                   id="preset-name-input"
                   type="text"
-                  placeholder="Ex: TP1 Mesure ROS Dioptre"
+                  placeholder="Ex: TP M115 Mesure ROS Dioptre"
                   value={saveNameInput}
-                  onChange={(e) => setSaveNameInput(e.target.value)}
+                  onValueChange={setSaveNameInput}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveState()}
-                  className="flex-1 bg-black/30 border border-white/15 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-[#0a84ff]"
+                  className="flex-1 lg-input-compact"
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="filled"
                   onClick={handleSaveState}
-                  className="px-3.5 py-1.5 bg-[#0a84ff] hover:brightness-110 text-white font-semibold rounded-lg text-xs"
+                  className="lg-btn-compact-md font-semibold"
                 >
                   Enregistrer
-                </button>
+                </Button>
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-2 border-t border-white/10">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
-                  <FolderOpen className="w-3.5 h-3.5 text-[#0a84ff]" />
-                  Sauvegardes ({savedPresets.length})
+            <div className="space-y-2.5 pt-3 border-t border-[var(--hairline-subtle)]">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
+                  <FolderOpen className="w-3.5 h-3.5 text-[var(--app-accent)]" />
+                  <span>Sauvegardes ({savedPresets.length})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="cursor-pointer text-[11px] px-2.5 py-1 rounded bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 flex items-center gap-1">
-                    <Upload className="w-3 h-3 text-[#0a84ff]" />
-                    Importer
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportJson}
-                      className="hidden"
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleExportJson}
-                    className="text-[11px] px-2.5 py-1 rounded bg-white/10 hover:bg-white/15 text-slate-200 border border-white/15 flex items-center gap-1"
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportJson}
+                    className="hidden"
+                  />
+                  <Button
+                    icon={<Upload className="w-3.5 h-3.5 text-[var(--app-accent)]" />}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="lg-btn-compact font-medium"
                   >
-                    <Download className="w-3 h-3 text-[#0a84ff]" />
+                    Importer
+                  </Button>
+                  <Button
+                    icon={<Download className="w-3.5 h-3.5 text-[var(--app-accent)]" />}
+                    onClick={handleExportJson}
+                    className="lg-btn-compact font-medium"
+                  >
                     Exporter
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               {savedPresets.length === 0 ? (
-                <p className="text-xs text-slate-400 py-3 bg-black/25 rounded-lg text-center border border-white/10">
+                <p className="text-xs text-[var(--text-muted)] py-4 border-y border-[var(--hairline-subtle)] text-center">
                   Aucune configuration enregistrée.
                 </p>
               ) : (
-                <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                <div className="max-h-52 overflow-y-auto divide-y divide-[var(--hairline-subtle)] border-y border-[var(--hairline-subtle)] pr-1">
                   {savedPresets.map((p) => (
                     <div
                       key={p.id}
-                      className="p-2.5 rounded-lg bg-black/25 border border-white/10 flex items-center justify-between text-xs"
+                      className="py-2.5 flex items-center justify-between gap-2 text-xs"
                     >
-                      <div className="flex-1 mr-2 min-w-0">
-                        <div className="font-semibold text-slate-100 truncate">{p.name}</div>
-                        <div className="text-[11px] text-slate-400 font-mono">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-[var(--text-primary)] truncate">{p.name}</div>
+                        <div className="text-[11px] text-[var(--text-muted)] font-mono tabular-nums">
                           f={p.wave.frequency}GHz · {p.wave.guidedMode} · {p.materialId}
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
+                        <Button
+                          variant="filled"
                           onClick={() => {
                             onLoadSavedPreset(p);
                             setShowSavedModal(false);
                             showToast(`Configuration « ${p.name} » chargée.`);
                           }}
-                          className="px-2.5 py-1 rounded bg-[#0a84ff] hover:brightness-110 text-white font-semibold text-xs transition-all"
+                          className="lg-btn-compact font-semibold"
                         >
                           Charger
-                        </button>
-                        <button
-                          type="button"
+                        </Button>
+                        <Button
+                          destructive
+                          icon={<Trash2 className="w-3.5 h-3.5" />}
                           aria-label={`Supprimer ${p.name}`}
                           onClick={() => handleDeletePreset(p.id, p.name)}
-                          className="p-1.5 rounded bg-white/10 hover:bg-rose-500/30 text-slate-300 hover:text-rose-200 border border-white/10 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                          className="lg-btn-compact-icon"
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </div>
+          </Glass>
         </div>
       )}
     </>
