@@ -21,8 +21,15 @@ import { loadAcademicProfile, saveAcademicProfile } from './utils/academicProfil
 import { deserializeStateFromUrl, SavedPreset } from './utils/exportUtils';
 import { Waves, Layers, Activity } from 'lucide-react';
 
+function isMobileOrCoarseDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  return coarsePointer || window.innerWidth < 768;
+}
+
 function detectBackdropRefractionSupport(): boolean {
   if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+  if (isMobileOrCoarseDevice()) return false;
   const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const reducedTransparency = window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches;
   if (reducedMotion || reducedTransparency) return false;
@@ -108,21 +115,30 @@ export const App: React.FC = () => {
     loadAcademicProfile()
   );
   const [academicModalOpen, setAcademicModalOpen] = useState(false);
+  const [liveRefraction, setLiveRefraction] = useState<boolean>(() =>
+    detectBackdropRefractionSupport()
+  );
 
-  // Feature-detect live refraction support and activate plain CSS blur fallback when unsupported
+  // Feature-detect live refraction support (desktop fine-pointer Chromium only; lightweight CSS frost on mobile)
   useEffect(() => {
     const syncRefractionMode = () => {
       const supported = detectBackdropRefractionSupport();
       document.documentElement.dataset.refraction = supported ? 'live' : 'fallback';
+      setLiveRefraction(supported);
     };
     syncRefractionMode();
     const motionMq = window.matchMedia?.('(prefers-reduced-motion: reduce)');
     const transMq = window.matchMedia?.('(prefers-reduced-transparency: reduce)');
+    const pointerMq = window.matchMedia?.('(pointer: coarse)');
+    window.addEventListener('resize', syncRefractionMode);
     motionMq?.addEventListener?.('change', syncRefractionMode);
     transMq?.addEventListener?.('change', syncRefractionMode);
+    pointerMq?.addEventListener?.('change', syncRefractionMode);
     return () => {
+      window.removeEventListener('resize', syncRefractionMode);
       motionMq?.removeEventListener?.('change', syncRefractionMode);
       transMq?.removeEventListener?.('change', syncRefractionMode);
+      pointerMq?.removeEventListener?.('change', syncRefractionMode);
     };
   }, []);
 
@@ -342,9 +358,9 @@ export const App: React.FC = () => {
       data-chapter={activeChapter}
       className="relative w-screen h-screen overflow-hidden text-slate-100"
     >
-      {/* Couche 0 (Sibling) : Canvas Three.js plein écran enveloppé dans [data-glisse-backdrop] sur fond dégradé profond */}
+      {/* Couche 0 (Sibling) : Canvas Three.js plein écran enveloppé dans [data-glisse-backdrop] sur desktop uniquement */}
       <div
-        data-glisse-backdrop
+        data-glisse-backdrop={liveRefraction ? '' : undefined}
         data-testid="glisse-backdrop"
         className="fixed inset-0 z-0 deep-scene-gradient"
       >

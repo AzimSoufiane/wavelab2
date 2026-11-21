@@ -56,6 +56,12 @@ const CAMERA_PRESETS: Record<
   },
 };
 
+const isCompactMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const coarse = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+  return coarse || window.innerWidth < 768;
+};
+
 const detectSoftwareWebGL = (): boolean => {
   try {
     const gl = document.createElement('canvas').getContext('webgl2');
@@ -160,6 +166,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
     const width = Math.max(1, container.clientWidth);
     const height = Math.max(1, container.clientHeight);
     const isSoftwareGl = detectSoftwareWebGL();
+    const isCompactMobile = isCompactMobileDevice();
     isSoftwareGlRef.current = isSoftwareGl;
 
     const scene = new THREE.Scene();
@@ -183,12 +190,18 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       powerPreference: 'high-performance',
     });
     renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(
+      isSoftwareGl
+        ? 1
+        : isCompactMobile
+        ? Math.min(window.devicePixelRatio, 1.35)
+        : Math.min(window.devicePixelRatio, 2)
+    );
     renderer.setSize(width, height);
-    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
-    renderer.shadowMap.enabled = !isSoftwareGl;
+    renderer.shadowMap.enabled = !isSoftwareGl && !isCompactMobile;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -216,7 +229,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
 
     const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.55);
     keyLight.position.set(12, 26, 16);
-    keyLight.castShadow = !isSoftwareGl;
+    keyLight.castShadow = !isSoftwareGl && !isCompactMobile;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     keyLight.shadow.camera.left = -20;
@@ -314,7 +327,7 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       });
       const sphere = new THREE.Mesh(sphereGeo, sphereMat);
       sphere.position.y = 1.0;
-      sphere.castShadow = !isSoftwareGl;
+      sphere.castShadow = !isSoftwareGl && !isCompactMobile;
       group.add(sphere);
 
       const stemGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 10);
@@ -410,9 +423,17 @@ export const ThreeViewport: React.FC<ThreeViewportProps> = ({
       const w = Math.max(1, containerRef.current.clientWidth);
       const h = Math.max(1, containerRef.current.clientHeight);
       const aspect = w / h;
+      const compact = isCompactMobileDevice();
       cameraRef.current.aspect = aspect;
       cameraRef.current.fov = aspect < 1 ? Math.min(72, 44 / Math.max(0.62, aspect)) : 44;
       cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setPixelRatio(
+        isSoftwareGl
+          ? 1
+          : compact
+          ? Math.min(window.devicePixelRatio, 1.35)
+          : Math.min(window.devicePixelRatio, 2)
+      );
       rendererRef.current.setSize(w, h);
       renderNowRef.current?.();
     };

@@ -94,7 +94,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
   const getDetentBounds = () => {
     const vh = typeof window !== 'undefined' ? window.innerHeight : 900;
     const halfPx = Math.round(vh * 0.43);
-    const fullPx = Math.max(halfPx + 96, vh - 196);
+    const fullPx = Math.max(halfPx + 72, vh - 248);
     return { halfPx, fullPx };
   };
 
@@ -312,7 +312,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = React.memo(({
 
   const detentHeightClass =
     detent === 'full'
-      ? 'max-h-[calc(100dvh-196px)]'
+      ? 'max-h-[calc(100dvh-248px)]'
       : detent === 'half'
       ? 'max-h-[43vh]'
       : 'max-h-0';

@@ -414,8 +414,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
     }
   };
 
-  const nextSpeed = speeds[(speeds.indexOf(simulation.speed) + 1) % speeds.length];
-
   return (
     <>
       <header className="fixed top-3 left-3 right-3 z-30 pointer-events-none flex items-center justify-between gap-2 select-none">
@@ -559,11 +557,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
                 label: 'Présélections',
                 icon: <Bookmark className="w-4 h-4" />,
                 onSelect: () => setShowSavedModal(true),
-              },
-              {
-                label: `Vitesse ${simulation.speed}× → ${nextSpeed}×`,
-                icon: <Gauge className="w-4 h-4" />,
-                onSelect: () => onSimulationChange({ ...simulation, speed: nextSpeed }),
               },
               'separator',
               {

@@ -102,20 +102,40 @@ html[data-theme="dark"],
 
 /* Fallback to plain CSS blur when live SVG/WebGL refraction is unsupported */
 @supports not (backdrop-filter: url(#glisse-refract)) {
-  .lg-glass,
+  .lg-glass:not(.lg-tab-lens),
   .lg-tab-bar-glass {
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
-    background-color: rgba(14, 22, 42, 0.66);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(16px) saturate(150%);
+    background-color: rgba(14, 22, 42, 0.72);
   }
 }
 
-[data-refraction="fallback"] .lg-glass,
+[data-refraction="fallback"] .lg-glass:not(.lg-tab-lens),
 [data-refraction="fallback"] .lg-tab-bar-glass,
 [data-refraction="fallback"] .lg-menu-surface {
-  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-  backdrop-filter: blur(24px) saturate(180%) !important;
-  background-color: rgba(14, 22, 42, 0.68) !important;
+  --lg-blur: 10px;
+  --lg-filter: saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
+  backdrop-filter: blur(10px) saturate(135%) !important;
+  background-color: rgba(14, 22, 42, 0.78) !important;
+}
+
+[data-refraction="fallback"] .lg-tab-lens::before {
+  --lg-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .bottom-sheet-glass {
+    background: linear-gradient(
+      180deg,
+      rgba(12, 19, 36, 0.78) 0%,
+      rgba(8, 13, 27, 0.86) 100%
+    );
+    -webkit-backdrop-filter: blur(12px) saturate(135%);
+    backdrop-filter: blur(12px) saturate(135%);
+  }
 }
 
 /* Final high-contrast fallback when backdrop-filter blur itself is unavailable */
