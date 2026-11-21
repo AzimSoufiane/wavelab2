@@ -14,7 +14,7 @@ import {
   calculateProbePhaseDelta,
 } from './physics/waveEngine';
 import { HeaderBar } from './components/HeaderBar';
-import { ControlPanel, ChapterTab } from './components/ControlPanel';
+import { ControlPanel, ChapterTab, SheetDetent } from './components/ControlPanel';
 import { ThreeViewport } from './components/ThreeViewport';
 import { AcademicProfileModal } from './components/AcademicProfileModal';
 import { loadAcademicProfile, saveAcademicProfile } from './utils/academicProfile';
@@ -101,8 +101,8 @@ export const App: React.FC = () => {
   });
 
   const [activeChapter, setActiveChapter] = useState<ChapterTab>('ch1');
-  const [sheetExpanded, setSheetExpanded] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth >= 768 : true
+  const [sheetDetent, setSheetDetent] = useState<SheetDetent>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'peek' : 'half'
   );
   const [academicProfile, setAcademicProfile] = useState<AcademicProfile>(() =>
     loadAcademicProfile()
@@ -310,7 +310,10 @@ export const App: React.FC = () => {
     }));
   }, [resetOscilloscopeBuffers]);
 
-  const handleToggleSheet = useCallback(() => setSheetExpanded((prev) => !prev), []);
+  const handleToggleSheet = useCallback(
+    () => setSheetDetent((prev) => (prev === 'peek' ? 'half' : 'peek')),
+    []
+  );
   const handleOpenAcademicModal = useCallback(() => setAcademicModalOpen(true), []);
   const handleCloseAcademicModal = useCallback(() => setAcademicModalOpen(false), []);
   const handleIncidenceAngleChange = useCallback(
@@ -326,7 +329,7 @@ export const App: React.FC = () => {
 
   const handleChapterChange = useCallback((val: string) => {
     setActiveChapter(val as ChapterTab);
-    setSheetExpanded(true);
+    setSheetDetent((prev) => (prev === 'peek' ? 'half' : prev));
   }, []);
 
   return (
@@ -361,7 +364,7 @@ export const App: React.FC = () => {
         simulation={simulation}
         onSimulationChange={setSimulation}
         onApplyPreset={handleApplyPreset}
-        sheetExpanded={sheetExpanded}
+        sheetExpanded={sheetDetent !== 'peek'}
         onToggleSheet={handleToggleSheet}
         wave={wave}
         wall={wall}
@@ -372,10 +375,11 @@ export const App: React.FC = () => {
         onOpenAcademicModal={handleOpenAcademicModal}
       />
 
-      {/* Couche 2 : Panneau de paramètres flottant en bottom sheet (verre CSS pur backdrop-filter) */}
+      {/* Couche 2 : Panneau de paramètres flottant 3-états en bottom sheet (verre CSS pur backdrop-filter) */}
       <ControlPanel
         activeChapter={activeChapter}
-        isExpanded={sheetExpanded}
+        detent={sheetDetent}
+        onDetentChange={setSheetDetent}
         onToggleExpand={handleToggleSheet}
         wall={wall}
         onWallChange={setWall}

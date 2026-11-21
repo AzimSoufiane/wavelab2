@@ -509,7 +509,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
             title={simulation.isPlaying ? 'Pause' : 'Lire'}
           />
 
-          <div className="hidden sm:inline-flex">
+          <div className="hidden md:inline-flex">
             <Button
               icon={<StepForward className="w-4 h-4" />}
               onClick={() =>
@@ -546,6 +546,27 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
             icon={<MoreHorizontal className="w-4 h-4" />}
             items={[
               {
+                label: 'Avancer d’un pas',
+                icon: <StepForward className="w-4 h-4" />,
+                onSelect: () =>
+                  onSimulationChange({
+                    ...simulation,
+                    isPlaying: false,
+                    time: simulation.time + 0.05,
+                  }),
+              },
+              {
+                label: 'Présélections',
+                icon: <Bookmark className="w-4 h-4" />,
+                onSelect: () => setShowSavedModal(true),
+              },
+              {
+                label: `Vitesse ${simulation.speed}× → ${nextSpeed}×`,
+                icon: <Gauge className="w-4 h-4" />,
+                onSelect: () => onSimulationChange({ ...simulation, speed: nextSpeed }),
+              },
+              'separator',
+              {
                 label: 'Infos académiques',
                 icon: <GraduationCap className="w-4 h-4" />,
                 onSelect: onOpenAcademicModal,
@@ -565,17 +586,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
                 icon: <Download className="w-4 h-4" />,
                 onSelect: handleExportCsv,
               },
-              'separator',
-              {
-                label: 'Présélections',
-                icon: <Bookmark className="w-4 h-4" />,
-                onSelect: () => setShowSavedModal(true),
-              },
-              {
-                label: `Vitesse ${simulation.speed}× → ${nextSpeed}×`,
-                icon: <Gauge className="w-4 h-4" />,
-                onSelect: () => onSimulationChange({ ...simulation, speed: nextSpeed }),
-              },
             ]}
           />
         </div>
@@ -585,10 +595,10 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
       <div
         role="group"
         aria-label="Contrôle de vitesse de simulation"
-        className="fixed top-[60px] left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-3 z-20 pointer-events-auto flex items-center gap-1.5 select-none"
+        className="fixed top-[58px] left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-3 z-20 pointer-events-auto flex items-center gap-1.5 select-none"
       >
         <div
-          className="h-8 px-2.5 rounded-full bottom-sheet-glass flex items-center gap-1.5 text-[11px] font-medium text-slate-200 whitespace-nowrap"
+          className="h-8 px-2 sm:px-2.5 rounded-full bottom-sheet-glass flex items-center gap-1.5 text-[11px] font-medium text-slate-200 whitespace-nowrap"
           title="Glisser sur la barre pour ajuster la vitesse"
         >
           <Gauge className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
@@ -597,12 +607,12 @@ export const HeaderBar: React.FC<HeaderBarProps> = React.memo(({
 
         <SegmentedControl
           aria-label="Vitesse de simulation"
+          className="speed-segmented"
           title="Glisser ou cliquer pour changer la vitesse de simulation"
           value={String(simulation.speed)}
           onValueChange={(val) =>
             onSimulationChange({ ...simulation, speed: parseFloat(val) })
           }
-          style={{ '--lg-tab-width': '48px' } as React.CSSProperties}
           items={speeds.map((spd) => ({
             value: String(spd),
             label: `${spd}×`,

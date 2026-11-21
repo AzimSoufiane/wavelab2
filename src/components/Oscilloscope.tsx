@@ -299,16 +299,16 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
   return (
     <section
       aria-label="Oscilloscope bifaisceau et analyseur d'onde stationnaire"
-      className="w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 flex flex-col lg:flex-row items-stretch lg:items-center gap-3 text-xs select-none"
+      className="w-full flex flex-col lg:flex-row items-stretch lg:items-center gap-3 text-xs select-none"
     >
       {/* Télémétrie comparative & Ch. 3 */}
-      <div className="flex flex-col space-y-2 lg:min-w-[360px]">
+      <div className="flex flex-col space-y-2 lg:min-w-[350px]">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 text-slate-100 font-semibold">
             <Activity className="w-4 h-4 text-[#0a84ff] shrink-0" />
             <span>Oscilloscope &amp; Stationnarité</span>
           </div>
-          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-200">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-200 tabular-nums">
             <span data-testid="tos-readout">
               TOS=<b className="text-[#0a84ff]">{params.tos.toFixed(2)}</b>
             </span>
@@ -324,8 +324,8 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
-          <div className="p-2 rounded-lg bg-black/25 border border-white/10 space-y-1 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono tabular-nums">
+          <div className="p-2 rounded-lg bg-black/20 space-y-1.5 min-w-0">
             <div className="text-cyan-300 font-semibold flex items-center justify-between gap-2">
               <span className="truncate">S1 (x₁={probe.x1.toFixed(1)}m)</span>
               <span className="text-[10px] text-slate-400 font-normal truncate">{zone1}</span>
@@ -344,7 +344,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
                   key={z}
                   type="button"
                   onClick={() => onProbePreset(1, z)}
-                  className="flex-1 px-1 py-0.5 bg-white/[0.08] hover:bg-[#0a84ff]/30 text-[10px] rounded text-slate-200 transition-colors truncate"
+                  className="flex-1 px-1.5 py-1 bg-white/[0.07] hover:bg-[#0a84ff]/30 text-[10px] rounded text-slate-200 transition-colors truncate"
                 >
                   {z === 'incident' ? 'Incident' : z === 'inside' ? 'Paroi' : 'Transmis'}
                 </button>
@@ -352,7 +352,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
             </div>
           </div>
 
-          <div className="p-2 rounded-lg bg-black/25 border border-white/10 space-y-1 min-w-0">
+          <div className="p-2 rounded-lg bg-black/20 space-y-1.5 min-w-0">
             <div className="text-amber-300 font-semibold flex items-center justify-between gap-2">
               <span className="truncate">S2 (x₂={probe.x2.toFixed(1)}m)</span>
               <span className="text-[10px] text-slate-400 font-normal truncate">{zone2}</span>
@@ -371,7 +371,7 @@ export const Oscilloscope: React.FC<OscilloscopeProps> = ({
                   key={z}
                   type="button"
                   onClick={() => onProbePreset(2, z)}
-                  className="flex-1 px-1 py-0.5 bg-white/[0.08] hover:bg-[#0a84ff]/30 text-[10px] rounded text-slate-200 transition-colors truncate"
+                  className="flex-1 px-1.5 py-1 bg-white/[0.07] hover:bg-[#0a84ff]/30 text-[10px] rounded text-slate-200 transition-colors truncate"
                 >
                   {z === 'incident' ? 'Incident' : z === 'inside' ? 'Paroi' : 'Transmis'}
                 </button>

@@ -15,6 +15,7 @@ interface KatexEquationsProps {
   probeX1: number;
   probeX2: number;
   activeChapter?: 'ch1' | 'ch2' | 'ch3';
+  defaultCollapsed?: boolean;
 }
 
 function renderTex(latex: string) {
@@ -48,8 +49,9 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
   probeX1,
   probeX2,
   activeChapter,
+  defaultCollapsed = false,
 }) => {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [showInverseTp, setShowInverseTp] = useState(false);
   const deltaX = Math.abs(probeX2 - probeX1);
 
@@ -143,12 +145,12 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
   const showCh3 = !activeChapter || activeChapter === 'ch3';
 
   return (
-    <div className="shrink-0 bg-white/[0.04] border border-white/10 rounded-xl overflow-hidden">
+    <div className="shrink-0">
       <button
         type="button"
         onClick={() => setCollapsed(!collapsed)}
         aria-expanded={!collapsed}
-        className="w-full flex items-center justify-between px-3 py-2 bg-white/[0.03] hover:bg-white/[0.06] transition-colors border-b border-white/10 text-left"
+        className="w-full flex items-center justify-between py-2 hover:bg-white/[0.04] rounded-lg px-1.5 -mx-1.5 transition-colors text-left"
       >
         <div className="flex items-center gap-2">
           <Calculator className="w-3.5 h-3.5 text-[#0a84ff] shrink-0" />
@@ -165,7 +167,7 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
       </button>
 
       {!collapsed && (
-        <div className="p-2.5 space-y-2 text-xs text-slate-200">
+        <div className="pt-1.5 space-y-2 text-xs text-slate-200">
           {wave.boundaryModel === 'guide_ondes' && params.isCutoff && (
             <div
               data-testid="cutoff-banner"
@@ -212,10 +214,10 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
 
           <div className="grid grid-cols-1 gap-2 font-mono">
             {showCh1 && (
-              <div className="bg-black/25 p-2 rounded-lg border border-white/10 space-y-1">
+              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
                 <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between gap-2">
                   <span className="truncate">Ch. 1 — Dioptre &amp; Descartes</span>
-                  <span className="text-slate-400 font-normal shrink-0">
+                  <span className="text-slate-400 font-normal shrink-0 tabular-nums">
                     {material.isPEC
                       ? `n₁=${params.n1.toFixed(2)} → PEC`
                       : material.isConductor
@@ -232,7 +234,7 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
                   dangerouslySetInnerHTML={computed.texCh1G}
                 />
                 {params.brewsterDeg !== null && (
-                  <div className="text-[10px] text-slate-400 pt-0.5 flex flex-wrap gap-x-3">
+                  <div className="text-[10px] text-slate-400 pt-0.5 flex flex-wrap gap-x-3 tabular-nums">
                     <span>θB (TM) = {params.brewsterDeg.toFixed(1)}°</span>
                     {params.thetaLimitDeg !== null && (
                       <span>θl (TIR) = {params.thetaLimitDeg.toFixed(1)}°</span>
@@ -243,7 +245,7 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
             )}
 
             {showCh2 && (
-              <div className="bg-black/25 p-2 rounded-lg border border-white/10 space-y-1">
+              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
                 <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between">
                   <span>Ch. 2 — Milieu &amp; Pertes</span>
                   <span className="text-slate-400 font-normal">{regimeLabel}</span>
@@ -260,10 +262,10 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
             )}
 
             {showCh3 && (
-              <div className="bg-black/25 p-2 rounded-lg border border-white/10 space-y-1">
+              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
                 <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between">
                   <span>Ch. 3 — Onde Stationnaire</span>
-                  <span className="text-slate-400 font-normal">|x₂ - x₁| = {deltaX.toFixed(2)} m</span>
+                  <span className="text-slate-400 font-normal tabular-nums">|x₂ - x₁| = {deltaX.toFixed(2)} m</span>
                 </div>
                 <div
                   className="overflow-x-auto text-[11.5px] py-0.5 text-slate-100"
@@ -289,7 +291,7 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
                 {showInverseTp && (
                   <div
                     data-testid="inverse-tp-panel"
-                    className="mt-1.5 p-2 rounded bg-black/35 border border-[#0a84ff]/35 text-[11px] space-y-1 text-slate-200"
+                    className="mt-1.5 pt-2 border-t border-white/10 text-[11px] space-y-1 text-slate-200 tabular-nums"
                   >
                     <div>
                       1) ROS = {Number.isFinite(rec.ros) ? rec.ros.toFixed(2) : '∞'} → |Γ| ={' '}
@@ -309,13 +311,13 @@ export const KatexEquations: React.FC<KatexEquationsProps> = React.memo(({
             )}
 
             {wave.boundaryModel === 'guide_ondes' && (
-              <div className="bg-black/25 p-2 rounded-lg border border-[#0a84ff]/30 space-y-1">
+              <div className="bg-black/20 px-2.5 py-2 rounded-lg space-y-1">
                 <div className="text-[11px] text-[#0a84ff] font-semibold flex items-center justify-between">
                   <span>
                     Guide {wave.guidedMode}_{wave.modeM}
                     {wave.modeN}
                   </span>
-                  <span className="text-slate-400 font-normal">
+                  <span className="text-slate-400 font-normal tabular-nums">
                     a={wave.guideA.toFixed(3)}m · b={wave.guideB.toFixed(3)}m
                   </span>
                 </div>
