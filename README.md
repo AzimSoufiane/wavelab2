@@ -1,6 +1,6 @@
 # WaveLab 3D — Mod-M115
 
-Simulateur 3D interactif de propagation électromagnétique réalisé pour le module **M115** de l'**ENSA Tanger**. L'application permet de visualiser et de mesurer, en temps réel, les phénomènes d'ondes vus au cours du semestre : dioptres, incidence oblique TE/TM, milieux à pertes, guides d'ondes et ondes stationnaires (TOS/ROS).
+Simulateur 3D interactif de propagation électromagnétique réalisé pour le module **M115** de l'**ENSA Tanger**. L'application permet de visualiser et de mesurer, en temps réel, les phénomènes de propagation dans différents milieux.
 
 L'interface combine une scène **Three.js** plein écran, un panneau de paramètres flottant, un oscilloscope deux voies et un tableau d'équations rendues avec **KaTeX**.
 
@@ -89,7 +89,7 @@ bun run clean     # suppression de dist/ et server.js
 ├── public
 │   └── assets               # fichiers statiques servis à la racine (/assets/...)
 │       └── aistudio
-└── src
+├── src
     ├── main.tsx             # montage de l'application
     ├── App.tsx              # état global, chapitres et agencement des couches
     ├── types.ts             # types partagés (WaveConfig, WallGeometry, sondes…)
@@ -127,19 +127,9 @@ Projet pédagogique associé au module **Mod-M115 — Propagation et guides d'on
 
 ## Résumé du cours (PDF)
 
-Pour joindre le résumé de cours que vous avez préparé :
+[📄 Aperçu du résumé de cours — Fiche de propagation](public/assets/aistudio/Fiche_propagation-3.pdf)
 
-1. Déposez le fichier dans `public/assets/`, par exemple `public/assets/resume-mod-m115.pdf`.
-2. Vite le sert alors à l'URL `/assets/resume-mod-m115.pdf` et le copie automatiquement dans `dist/` lors du build.
-3. Pour le rendre accessible depuis l'interface, ajoutez un lien dans `src/components/HeaderBar.tsx` :
-
-```tsx
-<a href="/assets/resume-mod-m115.pdf" target="_blank" rel="noopener noreferrer">
-  Résumé du cours
-</a>
-```
-
-Le PDF peut aussi être référencé depuis le README avec un lien relatif : `[Résumé du cours](public/assets/resume-mod-m115.pdf)`.
+Le PDF est également servi par l'application à l'adresse `/assets/aistudio/Fiche_propagation-3.pdf`.
 
 ## Licence
 
